@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO Data Resolver v1.0.0 */
+/* UBnux Fresh SEO Data Resolver v1.1.0 */
 (function (window) {
   "use strict";
 
@@ -6,7 +6,7 @@
   var cache = Object.create(null);
 
   function normalize(value) {
-    return String(value || "").trim().toLowerCase();
+    return String(value == null ? "" : value).trim().toLowerCase();
   }
 
   function readJSON(path) {
@@ -27,7 +27,7 @@
     for (var i = 0; i < keys.length; i++) {
       if (Array.isArray(data && data[keys[i]])) return data[keys[i]];
     }
-    return [];
+    return data && typeof data === "object" ? [data] : [];
   }
 
   function field(row, names) {
@@ -87,40 +87,63 @@
     });
   }
 
+  function sameId(a, b) {
+    return normalize(a) !== "" && normalize(a) === normalize(b);
+  }
+
   function resolve(route) {
     return loadIndexes().then(function (indexes) {
-      var result = { route: route, indexes: indexes, state: null, district: null, category: null, businesses: [] };
+      var result = {
+        route: route,
+        indexes: indexes,
+        state: null,
+        district: null,
+        category: null,
+        business: null,
+        businesses: [],
+        errors: []
+      };
 
       if (route.stateSlug) result.state = findState(indexes, route.stateSlug);
       if (route.districtSlug) result.district = findDistrict(indexes, route.districtSlug);
       if (route.categorySlug) result.category = findCategory(indexes, route.categorySlug);
 
+      if (route.type === "state") return result;
+
       if (route.type === "category") {
-        return Promise.all(indexes.districts.map(loadDistrictBusinesses)).then(function (groups) {
+        return Promise.all(indexes.districts.map(function (district) {
+          return loadDistrictBusinesses(district).catch(function () { return []; });
+        })).then(function (groups) {
           result.businesses = groups.reduce(function (all, group) { return all.concat(group); }, []);
           if (result.category) {
             var cid = field(result.category, ["Category_Id", "categoryId", "id"]);
             result.businesses = result.businesses.filter(function (b) {
-              return normalize(field(b, ["Category_Id", "categoryId", "categoryId"])) === normalize(cid);
+              return sameId(field(b, ["Category_Id", "categoryId"]), cid);
             });
           }
           return result;
         });
       }
 
+      if (route.districtSlug && !result.district) {
+        result.errors.push("District not found");
+        return result;
+      }
+
       if (result.district) {
-        return loadDistrictBusinesses(result.district).then(function (businesses) {
+        return loadDistrictBusinesses(result.district).catch(function () { return []; }).then(function (businesses) {
           result.businesses = businesses;
           var districtId = field(result.district, ["District_Id", "districtId", "id"]);
+
           result.businesses = result.businesses.filter(function (b) {
-            var bid = field(b, ["District_Id", "districtId", "districtId"]);
-            return !bid || normalize(bid) === normalize(districtId);
+            var bid = field(b, ["District_Id", "districtId"]);
+            return !bid || sameId(bid, districtId);
           });
 
           if (result.category) {
             var cid = field(result.category, ["Category_Id", "categoryId", "id"]);
             result.businesses = result.businesses.filter(function (b) {
-              return normalize(field(b, ["Category_Id", "categoryId"])) === normalize(cid);
+              return sameId(field(b, ["Category_Id", "categoryId"]), cid);
             });
           }
 
@@ -139,7 +162,7 @@
   }
 
   window.UBnuxSEOData = {
-    version: "1.0.0",
+    version: "1.1.0",
     loadIndexes: loadIndexes,
     loadDistrictBusinesses: loadDistrictBusinesses,
     resolve: resolve
