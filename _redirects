@@ -1,0 +1,3 @@
+# UBnux SEO route shell
+/in /index.html 200
+/in/* /index.html 200
