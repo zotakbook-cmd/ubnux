@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ubnux.com/sitemap.xml
