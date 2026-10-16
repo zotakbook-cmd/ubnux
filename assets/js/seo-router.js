@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO Router v1.0.0 */
+/* UBnux Fresh SEO Router v1.1.0 */
 (function (window) {
   "use strict";
 
@@ -14,8 +14,10 @@
     var path = clean(raw);
     var parts = path ? path.split("/").filter(Boolean) : [];
 
+    if (!parts.length) return { type: "home", parts: [], valid: true };
+
     if (parts[0] !== "in") {
-      return { type: "home", parts: parts, valid: true };
+      return { type: "not-found", parts: parts, valid: false };
     }
 
     var rest = parts.slice(1);
@@ -66,7 +68,7 @@
   }
 
   window.UBnuxSEORouter = {
-    version: "1.0.0",
+    version: "1.1.0",
     parse: parse,
     normalize: clean
   };
