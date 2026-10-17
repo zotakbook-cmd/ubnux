@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO Data Resolver v1.2.0 */
+/* UBnux Fresh SEO Data Resolver v1.3.0 */
 (function (window) {
   "use strict";
 
@@ -11,7 +11,7 @@
 
   function readJSON(path) {
     if (cache[path]) return cache[path];
-    return fetch(BASE + path, { cache: "no-cache" })
+    var request = fetch(BASE + path, { cache: "default" })
       .then(function (response) {
         if (!response.ok) throw new Error("Data request failed: " + path);
         return response.json();
@@ -20,6 +20,8 @@
         cache[path] = data;
         return data;
       });
+    cache[path] = request;
+    return request;
   }
 
   function arrayFrom(data, keys) {
@@ -87,6 +89,16 @@
     });
   }
 
+  function loadCategoryBusinesses(category) {
+    var categoryId = field(category, ["Category_Id", "categoryId", "id"]);
+    if (!categoryId) return Promise.resolve([]);
+
+    return readJSON("category-index/" + encodeURIComponent(categoryId) + ".JSON")
+      .then(function (data) {
+        return arrayFrom(data, ["businesses", "data", "items"]);
+      });
+  }
+
   function sameId(a, b) {
     return normalize(a) !== "" && normalize(a) === normalize(b);
   }
@@ -137,17 +149,28 @@
           return result;
         }
 
-        return Promise.all(indexes.districts.map(function (district) {
-          return loadDistrictBusinesses(district).catch(function () { return []; });
-        })).then(function (groups) {
-          var cid = field(result.category, ["Category_Id", "categoryId", "id"]);
-          result.businesses = groups.reduce(function (all, group) {
-            return all.concat(group);
-          }, []).filter(function (business) {
-            return sameId(field(business, ["Category_Id", "categoryId"]), cid);
+        return loadCategoryBusinesses(result.category)
+          .then(function (businesses) {
+            var cid = field(result.category, ["Category_Id", "categoryId", "id"]);
+            result.businesses = businesses.filter(function (business) {
+              return sameId(field(business, ["Category_Id", "categoryId"]), cid);
+            });
+            return result;
+          })
+          .catch(function () {
+            // Backward-compatible fallback for a category index that has not been built yet.
+            return Promise.all(indexes.districts.map(function (district) {
+              return loadDistrictBusinesses(district).catch(function () { return []; });
+            })).then(function (groups) {
+              var cid = field(result.category, ["Category_Id", "categoryId", "id"]);
+              result.businesses = groups.reduce(function (all, group) {
+                return all.concat(group);
+              }, []).filter(function (business) {
+                return sameId(field(business, ["Category_Id", "categoryId"]), cid);
+              });
+              return result;
+            });
           });
-          return result;
-        });
       }
 
       if (!result.state) result.errors.push("State not found");
@@ -190,9 +213,10 @@
   }
 
   window.UBnuxSEOData = {
-    version: "1.2.0",
+    version: "1.3.0",
     loadIndexes: loadIndexes,
     loadDistrictBusinesses: loadDistrictBusinesses,
+    loadCategoryBusinesses: loadCategoryBusinesses,
     resolve: resolve
   };
 })(window);
