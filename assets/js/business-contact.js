@@ -1,191 +1,25 @@
-/* UBnux Business Contact Client v1.8.0 */
+/* UBnux Business Contact Client v1.8.1 */
 (function(window,document){
 'use strict';
-
 var DIRECT_API_URL='https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
 var PROXY_URL='/api/business-contact';
 var requestSerial=0;
-
-function field(row,names){
-  row=row||{};
-  for(var i=0;i<names.length;i++){
-    var value=row[names[i]];
-    if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value).trim();
-  }
-  return '';
-}
-
-function ensureLoadingState(box){
-  var state=box.querySelector('[data-contact-loading-state]');
-  if(state)return state;
-  state=document.createElement('div');
-  state.className='ubnux-contact-loading';
-  state.setAttribute('data-contact-loading-state','');
-  state.innerHTML='<span class="ubnux-contact-spinner" aria-hidden="true"></span><span data-contact-loading-text>Loading contact details...</span>';
-  box.insertBefore(state,box.firstChild);
-  return state;
-}
-
-function setLoading(box,show,message){
-  var state=ensureLoadingState(box),text=state.querySelector('[data-contact-loading-text]');
-  if(text)text.textContent=message||'Loading contact details...';
-  if(show)state.removeAttribute('hidden');else state.setAttribute('hidden','');
-}
-
-function reset(box){
-  ['[data-contact-call]','[data-contact-whatsapp]','[data-contact-map]','[data-contact-website]'].forEach(function(selector){
-    var el=box.querySelector(selector);
-    if(el){el.setAttribute('hidden','');el.removeAttribute('href');}
-  });
-  box.removeAttribute('data-contact-ready');
-  box.removeAttribute('data-contact-unavailable');
-  box.setAttribute('data-contact-loading','');
-  setLoading(box,true,'Loading contact details...');
-}
-
-function normalizeMap(value){
-  var v=String(value||'').trim();
-  if(!v)return '';
-  return /^https?:\/\//i.test(v)?v:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(v);
-}
-
-function normalizeWebsite(value){
-  var v=String(value||'').trim();
-  if(!v)return '';
-  return /^https?:\/\//i.test(v)?v:'https://'+v;
-}
-
-function setOptionalLink(box,selector,url){
-  var el=box.querySelector(selector);
-  if(!el)return;
-  if(url){el.href=url;el.removeAttribute('hidden');}
-  else{el.setAttribute('hidden','');el.removeAttribute('href');}
-}
-
-function setDescription(box,value){
-  var el=box.querySelector('[data-contact-description-text]');
-  if(!el)return;
-  var text=String(value||'').trim();
-  el.textContent=text||'No business description is available yet.';
-}
-
-function applyResult(box,result){
-  if(!result||!result.found)throw new Error('Business ID not found in district sheet');
-
-  var phone=String(result.phone||'').replace(/\D/g,''),
-      call=box.querySelector('[data-contact-call]'),
-      whatsapp=box.querySelector('[data-contact-whatsapp]');
-
-  if(call){
-    if(phone){call.href='tel:+'+phone;call.removeAttribute('hidden');}
-    else{call.setAttribute('hidden','');call.removeAttribute('href');}
-  }
-  if(whatsapp){
-    if(phone){whatsapp.href='https://wa.me/'+phone;whatsapp.removeAttribute('hidden');}
-    else{whatsapp.setAttribute('hidden','');whatsapp.removeAttribute('href');}
-  }
-
-  setOptionalLink(box,'[data-contact-map]',normalizeMap(result.map));
-  setOptionalLink(box,'[data-contact-website]',normalizeWebsite(result.website));
-  setDescription(box,result.description);
-
-  setLoading(box,false);
-  box.removeAttribute('data-contact-loading');
-  box.setAttribute('data-contact-ready','true');
-  box.removeAttribute('data-contact-unavailable');
-}
-
-function proxyRequest(businessId,district){
-  var url=PROXY_URL+'?district='+encodeURIComponent(district)+'&businessId='+encodeURIComponent(businessId)+'&_='+(++requestSerial);
-  return fetch(url,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json'}})
-    .then(function(response){
-      return response.text().then(function(text){
-        var result;
-        try{result=JSON.parse(text);}catch(e){throw new Error('Contact proxy returned invalid JSON');}
-        if(!response.ok)throw new Error(result&&result.error||('Contact proxy HTTP '+response.status));
-        if(!result||!result.found)throw new Error(result&&result.error||'Business ID not found in contact backend');
-        return result;
-      });
-    });
-}
-
-function jsonpRequest(businessId,district){
-  return new Promise(function(resolve,reject){
-    var callbackName='__ubnuxContact_'+Date.now()+'_'+(++requestSerial),
-        script=document.createElement('script'),finished=false,
-        timer=setTimeout(function(){finish(new Error('Google Sheet contact lookup timed out'));},10000);
-
-    function cleanup(){
-      clearTimeout(timer);
-      try{delete window[callbackName];}catch(e){window[callbackName]=undefined;}
-      if(script.parentNode)script.parentNode.removeChild(script);
-    }
-    function finish(error,result){
-      if(finished)return;
-      finished=true;cleanup();
-      if(error)reject(error);else resolve(result);
-    }
-
-    window[callbackName]=function(result){
-      if(!result||!result.found){finish(new Error(result&&result.error||'Business ID not found in Google Sheet'));return;}
-      finish(null,result);
-    };
-    script.onerror=function(){finish(new Error('Google Sheet contact lookup failed'));};
-    script.src=DIRECT_API_URL+
-      '?district='+encodeURIComponent(district)+
-      '&businessId='+encodeURIComponent(businessId)+
-      '&callback='+encodeURIComponent(callbackName)+
-      '&_='+(++requestSerial);
-    script.async=true;
-    document.head.appendChild(script);
-  });
-}
-
-function request(box,businessId,district){
-  if(!businessId||!district)return;
-  reset(box);
-
-  // Same-origin proxy first. It avoids browser CORS/redirect problems with Apps Script.
-  proxyRequest(businessId,district)
-    .then(function(result){applyResult(box,result);})
-    .catch(function(proxyError){
-      // Direct JSONP is the second path and returns the complete A:E row.
-      return jsonpRequest(businessId,district)
-        .then(function(result){applyResult(box,result);})
-        .catch(function(directError){
-          setLoading(box,true,'Contact details unavailable');
-          box.removeAttribute('data-contact-loading');
-          box.setAttribute('data-contact-unavailable','true');
-          box.setAttribute('data-contact-error',String(directError&&directError.message||proxyError&&proxyError.message||'Unknown error'));
-          if(window.console&&console.warn)console.warn('[UBnux contact]',proxyError&&proxyError.message, directError&&directError.message);
-        });
-    });
-}
-
-function hydrateBusiness(business,data){
-  var box=document.querySelector('[data-ubnux-contact-actions]');
-  if(!box)return;
-  var id=field(business,['Business_Id','BusinessID','Business_ID','id']);
-  var district=field(data&&data.district,['District_Title','District_Name','DistrictName'])||box.getAttribute('data-district')||'';
-  hydrateBox(box,id||box.getAttribute('data-business-id')||'',district);
-}
-
-function hydrateBox(box,businessId,district){
-  if(!box)return;
-  businessId=String(businessId||box.getAttribute('data-business-id')||'').trim();
-  district=String(district||box.getAttribute('data-district')||'').trim();
-  if(!businessId||!district)return;
-  box.setAttribute('data-business-id',businessId);
-  box.setAttribute('data-district',district);
-  request(box,businessId,district);
-}
-
-function autoHydrate(){
-  document.querySelectorAll('[data-ubnux-contact-actions]').forEach(function(box){
-    hydrateBox(box,box.getAttribute('data-business-id')||'',box.getAttribute('data-district')||'');
-  });
-}
-
-window.UBnuxBusinessContact={version:'1.8.0',hydrateBusiness:hydrateBusiness,autoHydrate:autoHydrate};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoHydrate);else autoHydrate();
+function field(row,names){row=row||{};for(var i=0;i<names.length;i++){var value=row[names[i]];if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value).trim();}return '';}
+function ensureLoadingState(box){var state=box.querySelector('[data-contact-loading-state]');if(state)return state;state=document.createElement('div');state.className='ubnux-contact-loading';state.setAttribute('data-contact-loading-state','');state.innerHTML='<span class="ubnux-contact-spinner" aria-hidden="true"></span><span data-contact-loading-text>Loading contact details...</span>';box.insertBefore(state,box.firstChild);return state;}
+function setLoading(box,show,message){var state=ensureLoadingState(box),text=state.querySelector('[data-contact-loading-text]');if(text)text.textContent=message||'Loading contact details...';if(show)state.removeAttribute('hidden');else state.setAttribute('hidden','');}
+function reset(box){['[data-contact-call]','[data-contact-whatsapp]','[data-contact-map]','[data-contact-website]'].forEach(function(selector){var el=box.querySelector(selector);if(el){el.setAttribute('hidden','');el.removeAttribute('href');}});box.removeAttribute('data-contact-ready');box.removeAttribute('data-contact-unavailable');box.removeAttribute('data-contact-error');box.setAttribute('data-contact-loading','');setLoading(box,true,'Loading contact details...');}
+function normalizeMap(value){var v=String(value||'').trim();if(!v)return '';return /^https?:\/\//i.test(v)?v:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(v);}
+function normalizeWebsite(value){var v=String(value||'').trim();if(!v)return '';return /^https?:\/\//i.test(v)?v:'https://'+v;}
+function setOptionalLink(box,selector,url){var el=box.querySelector(selector);if(!el)return;if(url){el.href=url;el.removeAttribute('hidden');}else{el.setAttribute('hidden','');el.removeAttribute('href');}}
+function setDescription(box,value){var el=box.querySelector('[data-contact-description-text]');if(!el)return;var text=String(value||'').trim();el.textContent=text||'No business description is available yet.';}
+function applyResult(box,result){if(!result||!result.found)throw new Error(result&&result.error||'Business ID not found');var phone=String(result.phone||'').replace(/\D/g,''),call=box.querySelector('[data-contact-call]'),whatsapp=box.querySelector('[data-contact-whatsapp]');if(call){if(phone){call.href='tel:+'+phone;call.removeAttribute('hidden');}else{call.setAttribute('hidden','');call.removeAttribute('href');}}if(whatsapp){if(phone){whatsapp.href='https://wa.me/'+phone;whatsapp.removeAttribute('hidden');}else{whatsapp.setAttribute('hidden','');whatsapp.removeAttribute('href');}}setOptionalLink(box,'[data-contact-map]',normalizeMap(result.map));setOptionalLink(box,'[data-contact-website]',normalizeWebsite(result.website));setDescription(box,result.description);setLoading(box,false);box.removeAttribute('data-contact-loading');box.setAttribute('data-contact-ready','true');box.removeAttribute('data-contact-unavailable');}
+function jsonpRequest(businessId,district){return new Promise(function(resolve,reject){var callbackName='__ubnuxContact_'+Date.now()+'_'+(++requestSerial),script=document.createElement('script'),finished=false,timer=setTimeout(function(){finish(new Error('Google Sheet contact lookup timed out'));},10000);function cleanup(){clearTimeout(timer);try{delete window[callbackName];}catch(e){window[callbackName]=undefined;}if(script.parentNode)script.parentNode.removeChild(script);}function finish(error,result){if(finished)return;finished=true;cleanup();if(error)reject(error);else resolve(result);}window[callbackName]=function(result){if(!result||!result.found){finish(new Error(result&&result.error||'Business ID not found in Google Sheet'));return;}finish(null,result);};script.onerror=function(){finish(new Error('Google Sheet contact lookup failed'));};script.src=DIRECT_API_URL+'?district='+encodeURIComponent(district)+'&businessId='+encodeURIComponent(businessId)+'&callback='+encodeURIComponent(callbackName)+'&_='+(++requestSerial);script.async=true;document.head.appendChild(script);});}
+function proxyRequest(businessId,district){var url=PROXY_URL+'?district='+encodeURIComponent(district)+'&businessId='+encodeURIComponent(businessId)+'&_='+(++requestSerial);return fetch(url,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json'}}).then(function(response){return response.text().then(function(text){var result;try{result=JSON.parse(text);}catch(e){throw new Error('Contact proxy returned invalid JSON');}if(!response.ok)throw new Error(result&&result.error||('Contact proxy HTTP '+response.status));if(!result||!result.found)throw new Error(result&&result.error||'Business ID not found in contact backend');return result;});});}
+function request(box,businessId,district){if(!businessId||!district)return;reset(box);
+  // Direct Apps Script returns the complete A:E record. Proxy is the safety fallback.
+  jsonpRequest(businessId,district).then(function(result){applyResult(box,result);}).catch(function(directError){return proxyRequest(businessId,district).then(function(result){applyResult(box,result);}).catch(function(proxyError){setLoading(box,true,'Contact details unavailable');box.removeAttribute('data-contact-loading');box.setAttribute('data-contact-unavailable','true');box.setAttribute('data-contact-error',String(directError&&directError.message||proxyError&&proxyError.message||'Unknown error'));if(window.console&&console.warn)console.warn('[UBnux contact]',directError&&directError.message,proxyError&&proxyError.message);});});}
+function hydrateBusiness(business,data){var box=document.querySelector('[data-ubnux-contact-actions]');if(!box)return;var id=field(business,['Business_Id','BusinessID','Business_ID','id']);var district=field(data&&data.district,['District_Title','District_Name','DistrictName'])||box.getAttribute('data-district')||'';hydrateBox(box,id||box.getAttribute('data-business-id')||'',district);}
+function hydrateBox(box,businessId,district){if(!box)return;businessId=String(businessId||box.getAttribute('data-business-id')||'').trim();district=String(district||box.getAttribute('data-district')||'').trim();if(!businessId||!district)return;box.setAttribute('data-business-id',businessId);box.setAttribute('data-district',district);request(box,businessId,district);}
+function autoHydrate(){document.querySelectorAll('[data-ubnux-contact-actions]').forEach(function(box){hydrateBox(box,box.getAttribute('data-business-id')||'',box.getAttribute('data-district')||'');});}
+window.UBnuxBusinessContact={version:'1.8.1',hydrateBusiness:hydrateBusiness,autoHydrate:autoHydrate};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoHydrate);else autoHydrate();
 })(window,document);
