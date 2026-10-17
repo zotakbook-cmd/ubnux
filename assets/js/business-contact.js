@@ -1,7 +1,7 @@
 /* UBnux Business Contact Client v1.6.1 */
 (function(window, document){
 'use strict';
-var PROXY_URL='/api/business-contact',DIRECT_API_URL='https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec',requestSerial=0;
+var PROXY_URL='/api/business-contact',DIRECT_API_URL='https://script.google.com/macros/s/AKfycbzb2ycoXqEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec',requestSerial=0;
 function field(row,names){row=row||{};for(var i=0;i<names.length;i++){var value=row[names[i]];if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value).trim();}return '';}
 function reset(box){['[data-contact-call]','[data-contact-whatsapp]','[data-contact-map]','[data-contact-website]'].forEach(function(selector){var el=box.querySelector(selector);if(el){el.setAttribute('hidden','');el.removeAttribute('href');}});box.removeAttribute('data-contact-ready');box.removeAttribute('data-contact-unavailable');}
 function normalizeMap(value){var v=String(value||'').trim();if(!v)return '';return /^https?:\/\//i.test(v)?v:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(v);}
