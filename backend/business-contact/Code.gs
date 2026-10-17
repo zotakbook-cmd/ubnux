@@ -1,10 +1,9 @@
-/* UBnux Business Contact API v2.3.0
+/* UBnux Business Contact API v2.3.1
  * A = Business ID
  * B = Phone
  * C = Map / Google Maps URL or location text
  * D = Website URL
  * E = Business Description
- * Exact Business ID lookup; one request returns the complete A:E row.
  */
 
 const UBNUX_CONTACT_CONFIG = {
@@ -33,7 +32,8 @@ function doGet(e) {
         phone: record.phone || '',
         map: record.map || '',
         website: record.website || '',
-        description: record.description || ''
+        description: record.description || '',
+        error: record.found ? '' : 'Business ID not found'
       };
     } catch (err) {
       payload = {
@@ -41,6 +41,10 @@ function doGet(e) {
         found:false,
         businessId:businessId,
         district:district,
+        phone:'',
+        map:'',
+        website:'',
+        description:'',
         error:String(err && err.message ? err.message : err)
       };
     }
@@ -51,7 +55,7 @@ function doGet(e) {
 
 function findBusiness_(district, businessId) {
   const cache = CacheService.getScriptCache();
-  const key = 'bc5:' + normalize_(district) + ':' + normalizeId_(businessId);
+  const key = 'bc6:' + normalize_(district) + ':' + normalizeId_(businessId);
   const cached = cache.get(key);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) {}
@@ -64,8 +68,6 @@ function findBusiness_(district, businessId) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 1) return cacheEmpty_(cache, key);
 
-  // Read only A:E. getDisplayValues() keeps phone numbers exactly as displayed
-  // and also handles rows where the sheet contains formulas.
   const values = sheet.getRange(1, 1, lastRow, 5).getDisplayValues();
   const target = normalizeId_(businessId);
 
@@ -93,12 +95,10 @@ function findDistrictSheet_(ss, district) {
   const wantedCompact = wanted.replace(/[^a-z0-9]/g, '');
   const sheets = ss.getSheets();
 
-  // 1. Exact tab name: Siwan -> Siwan.
   for (let i = 0; i < sheets.length; i++) {
     if (normalize_(sheets[i].getName()) === wanted) return sheets[i];
   }
 
-  // 2. Compatibility: Siwan -> Siwan_Business.
   for (let i = 0; i < sheets.length; i++) {
     const name = normalize_(sheets[i].getName());
     const compact = name.replace(/[^a-z0-9]/g, '');
