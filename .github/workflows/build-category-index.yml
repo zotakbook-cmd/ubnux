@@ -1,12 +1,14 @@
-name: Build Category Index
+name: Build Exact SEO Data Index
 
 on:
   push:
     branches: [main]
     paths:
       - 'data/businesses/**'
+      - 'data/STATE.JSON'
+      - 'data/DISTRICT.JSON'
       - 'data/CATEGORY.JSON'
-      - 'scripts/build-category-index.js'
+      - 'scripts/build-seo-index.js'
       - '.github/workflows/build-category-index.yml'
   workflow_dispatch:
 
@@ -25,18 +27,18 @@ jobs:
         with:
           node-version: 20
 
-      - name: Build category indexes
-        run: node scripts/build-category-index.js
+      - name: Build exact SEO index and category shards
+        run: node scripts/build-seo-index.js
 
-      - name: Commit category indexes
+      - name: Commit generated indexes
         run: |
-          if git diff --quiet -- data/category-index; then
-            echo "Category indexes unchanged."
+          if git diff --quiet -- data/SEO_INDEX.JSON data/category-index; then
+            echo "Generated indexes unchanged."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/category-index
-          git commit -m "chore: rebuild category business indexes [skip ci]"
+          git add data/SEO_INDEX.JSON data/category-index
+          git commit -m "chore: rebuild exact SEO data indexes [skip ci]"
           git push
