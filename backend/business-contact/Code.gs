@@ -1,4 +1,4 @@
-/* UBnux Business Contact API v1.0.0
+/* UBnux Business Contact API v1.1.0
  * District sheet name = district (Siwan, Patna, etc.)
  * Column A = Business ID, Column B = phone number
  */
@@ -12,13 +12,21 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   const district = clean_(p.district);
   const businessId = clean_(p.businessId);
-  if (!district || !businessId) return json_({ok:false,error:'district and businessId are required'});
-  try {
-    const phone = findPhone_(district, businessId);
-    return json_({ok:true, found:!!phone, phone:phone || ''});
-  } catch (err) {
-    return json_({ok:false,error:String(err && err.message ? err.message : err)});
+  const callback = cleanCallback_(p.callback);
+
+  let payload;
+  if (!district || !businessId) {
+    payload = {ok:false,error:'district and businessId are required'};
+  } else {
+    try {
+      const phone = findPhone_(district, businessId);
+      payload = {ok:true, found:!!phone, phone:phone || ''};
+    } catch (err) {
+      payload = {ok:false,error:String(err && err.message ? err.message : err)};
+    }
   }
+
+  return callback ? jsonp_(callback, payload) : json_(payload);
 }
 
 function findPhone_(district, businessId) {
@@ -64,6 +72,11 @@ function clean_(value) {
   return String(value == null ? '' : value).trim().slice(0, 120);
 }
 
+function cleanCallback_(value) {
+  const callback = String(value == null ? '' : value).trim();
+  return /^[A-Za-z_$][0-9A-Za-z_$\.]{0,80}$/.test(callback) ? callback : '';
+}
+
 function normalizePhone_(value) {
   const raw = String(value == null ? '' : value).trim();
   if (!raw) return '';
@@ -75,4 +88,9 @@ function normalizePhone_(value) {
 
 function json_(payload) {
   return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function jsonp_(callback, payload) {
+  return ContentService.createTextOutput(callback + '(' + JSON.stringify(payload) + ');')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
