@@ -1,4 +1,4 @@
-/* UBnux Business Contact Client v1.7.0 */
+/* UBnux Business Contact Client v1.7.1 */
 (function(window, document){
 'use strict';
 
@@ -15,9 +15,19 @@ function field(row,names){
   return '';
 }
 
-function setLoading(box,show,message){
+function ensureLoadingState(box){
   var state=box&&box.querySelector('[data-contact-loading-state]');
-  if(!state)return;
+  if(state)return state;
+  state=document.createElement('div');
+  state.className='ubnux-contact-loading';
+  state.setAttribute('data-contact-loading-state','');
+  state.innerHTML='<span class="ubnux-contact-spinner" aria-hidden="true"></span><span data-contact-loading-text>Loading contact details...</span>';
+  box.insertBefore(state,box.firstChild);
+  return state;
+}
+
+function setLoading(box,show,message){
+  var state=ensureLoadingState(box);
   var text=state.querySelector('[data-contact-loading-text]');
   if(text)text.textContent=message||'Loading contact details...';
   if(show)state.removeAttribute('hidden');
@@ -143,7 +153,7 @@ function request(box,businessId,district){
   jsonpRequest(businessId,district)
     .then(function(result){applyResult(box,result);})
     .catch(function(error){
-      // Fallback keeps Call/WhatsApp working if the Apps Script JSONP endpoint is temporarily unavailable.
+      // Fallback keeps Call/WhatsApp working if Apps Script is temporarily unavailable.
       return proxyRequest(businessId,district)
         .then(function(result){applyResult(box,result);})
         .catch(function(){
@@ -172,6 +182,6 @@ function autoHydrate(){
   });
 }
 
-window.UBnuxBusinessContact={version:'1.7.0',hydrateBusiness:hydrateBusiness,autoHydrate:autoHydrate};
+window.UBnuxBusinessContact={version:'1.7.1',hydrateBusiness:hydrateBusiness,autoHydrate:autoHydrate};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoHydrate);else autoHydrate();
 })(window,document);
