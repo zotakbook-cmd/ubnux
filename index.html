@@ -11,23 +11,22 @@
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="/">UBnux</a>
+    <div class="ubnux-header-inner">
+      <a class="brand" href="/">UBnux</a>
+      <form class="ubnux-header-search" action="/search/" method="get">
+        <input name="q" type="search" placeholder="Search business, category or district..." aria-label="Search UBnux">
+        <button type="submit">Search</button>
+      </form>
+    </div>
   </header>
-
   <main id="ubnux-seo-root">
-    <section class="ubnux-home">
-      <div class="ubnux-container">
-        <p class="ubnux-eyebrow">LOCAL SEARCH ENGINE</p>
-        <h1>Find businesses, products and services.</h1>
-        <p class="ubnux-intro">Loading UBnux...</p>
-      </div>
-    </section>
+    <section class="ubnux-home"><div class="ubnux-container"><p class="ubnux-eyebrow">LOCAL SEARCH ENGINE</p><h1>Find businesses, products and services.</h1><p class="ubnux-intro">Loading UBnux...</p></div></section>
   </main>
-
   <script src="/assets/js/seo-router.js" defer></script>
   <script src="/assets/js/seo-data.js" defer></script>
   <script src="/assets/js/seo-renderer.js" defer></script>
   <script src="/assets/js/seo-schema.js" defer></script>
   <script src="/assets/js/seo-app.js" defer></script>
+  <script src="/assets/js/global-search.js" defer></script>
 </body>
 </html>
