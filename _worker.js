@@ -1,5 +1,5 @@
-// UBnux Cloudflare Pages Advanced Mode Worker v4.1.0
-// Exact-file SEO SSR: one master index -> exact district/category shard -> exact business shard.
+// UBnux Cloudflare Pages Advanced Mode Worker v4.2.0
+// Exact-file SEO SSR with query pagination: one master index -> exact district/category shard -> exact business shard.
 
 const ORIGIN = "https://ubnux.com";
 const DATA = "/data/";
@@ -12,19 +12,30 @@ function arr(data,keys=[]){if(Array.isArray(data))return data;for(const k of key
 function same(a,b){return clean(a)!==""&&clean(a)===clean(b);}
 function abs(p){p=String(p||"");return /^https?:\/\//i.test(p)?p:ORIGIN+(p.startsWith("/")?p:"/"+p);}
 function find(rows,slug,idNames,slugNames){const t=clean(slug);return rows.find(x=>same(field(x,idNames),t)||same(field(x,slugNames),t))||null;}
+function pageFromSearch(search){
+  const raw=new URLSearchParams(search||"").get("page");
+  if(raw==null||raw==="")return 1;
+  const n=Number(raw);
+  return Number.isInteger(n)&&n>0?n:1;
+}
+function clampPage(page,count){
+  const total=Math.max(1,Number(count||0));
+  return Math.min(Math.max(1,page),total);
+}
 
-function parse(pathname){
+function parse(pathname,search){
   const p=clean(pathname).split("/").filter(Boolean);
-  if(!p.length)return {type:"home",valid:true};
-  if(p[0]!=="in")return {type:"not-found",valid:false};
+  const page=pageFromSearch(search);
+  if(!p.length)return {type:"home",page:1,valid:true};
+  if(p[0]!=="in")return {type:"not-found",page:1,valid:false};
   const r=p.slice(1);
-  if(!r.length)return {type:"home",valid:true};
-  if(r.length===1)return {type:"state",stateSlug:r[0],valid:true};
-  if(r.length===2&&r[0]==="all")return {type:"category",categorySlug:r[1],valid:true};
-  if(r.length===2)return {type:"district",stateSlug:r[0],districtSlug:r[1],valid:true};
-  if(r.length===3)return {type:"district-category",stateSlug:r[0],districtSlug:r[1],categorySlug:r[2],valid:true};
-  if(r.length===4)return {type:"business",stateSlug:r[0],districtSlug:r[1],categorySlug:r[2],businessSlug:r[3],valid:true};
-  return {type:"not-found",valid:false};
+  if(!r.length)return {type:"home",page:1,valid:true};
+  if(r.length===1)return {type:"state",stateSlug:r[0],page:1,valid:true};
+  if(r.length===2&&r[0]==="all")return {type:"category",categorySlug:r[1],page,valid:true};
+  if(r.length===2)return {type:"district",stateSlug:r[0],districtSlug:r[1],page,valid:true};
+  if(r.length===3)return {type:"district-category",stateSlug:r[0],districtSlug:r[1],categorySlug:r[2],page,valid:true};
+  if(r.length===4)return {type:"business",stateSlug:r[0],districtSlug:r[1],categorySlug:r[2],businessSlug:r[3],page:1,valid:true};
+  return {type:"not-found",page:1,valid:false};
 }
 
 async function json(env,requestUrl,path){
@@ -146,12 +157,27 @@ function content(r,d){
   }
   const h=r.type==="state"?`${field(d.state,["State_Title"])} — Local Businesses & Services`:r.type==="district"?`${field(d.district,["District_Title"])} — Local Businesses & Services`:r.type==="category"?`${field(d.category,["Category_Title"])} Businesses in India`:`${field(d.category,["Category_Title"])} in ${field(d.district,["District_Title"])}`;
   const count=Number(d.businessTotal||0);
-  return `<section class="ubnux-page-section"><div class="ubnux-container"><p class="ubnux-eyebrow">LOCAL SEARCH</p><h1>${esc(h)}</h1><p class="ubnux-intro">${esc(description(r,d))}</p><div class="ubnux-result-count">${count} business${count===1?"":"es"} available</div>${cards(d)?`<div class="ubnux-business-grid">${cards(d)}</div>`:`<div class="ubnux-empty">No matching businesses are available yet.</div>`}</div></section>`;
+  const page=Number(r.page||1),pageCount=Number(d.pageCount||1);
+  return `<section class="ubnux-page-section"><div class="ubnux-container"><p class="ubnux-eyebrow">LOCAL SEARCH</p><h1>${esc(h)}</h1><p class="ubnux-intro">${esc(description(r,d))}</p><div class="ubnux-result-count">${count} business${count===1?"":"es"} available</div>${cards(d)?`<div class="ubnux-business-grid">${cards(d)}</div>`:`<div class="ubnux-empty">No matching businesses are available yet.</div>`}${pagination(r,page,pageCount)}</div></section>`;
+}
+
+function pagination(r,page,pageCount){
+  if(r.type==="business"||pageCount<=1)return "";
+  const base=pathOf(r);
+  function href(n){return n===1?base:base+`?page=${n}`;}
+  let html='<nav class="ubnux-pagination" aria-label="Pagination">';
+  if(page>1)html+=`<a class="ubnux-page-link" rel="prev" href="${esc(href(page-1))}">← Previous</a>`;
+  const start=Math.max(1,page-2),end=Math.min(pageCount,page+2);
+  if(start>1)html+=`<a class="ubnux-page-link" href="${esc(href(1))}">1</a>`+(start>2?'<span class="ubnux-page-gap">…</span>':'');
+  for(let n=start;n<=end;n++)html+=n===page?`<span class="ubnux-page-link is-current" aria-current="page">${n}</span>`:`<a class="ubnux-page-link" href="${esc(href(n))}">${n}</a>`;
+  if(end<pageCount)html+=(end<pageCount-1?'<span class="ubnux-page-gap">…</span>':'')+`<a class="ubnux-page-link" href="${esc(href(pageCount))}">${pageCount}</a>`;
+  if(page<pageCount)html+=`<a class="ubnux-page-link" rel="next" href="${esc(href(page+1))}">Next →</a>`;
+  return html+'</nav>';
 }
 
 async function resolve(env,url,r){
   const loaded=await loadIndex(env,url),ix=loaded.index;
-  const d={indexingEnabled:loaded.indexingEnabled,states:ix.States||[],districts:ix.Districts||[],categories:ix.Categories||[],state:null,district:null,category:null,business:null,businesses:[],businessTotal:0};
+  const d={indexingEnabled:loaded.indexingEnabled,states:ix.States||[],districts:ix.Districts||[],categories:ix.Categories||[],state:null,district:null,category:null,business:null,businesses:[],businessTotal:0,page:1,pageCount:1,hasNext:false};
 
   if(r.stateSlug)d.state=find(d.states,r.stateSlug,["State_Id"],["State_Slug"]);
   if(r.districtSlug)d.district=find(d.districts,r.districtSlug,["District_Id"],["District_Slug"]);
@@ -163,8 +189,11 @@ async function resolve(env,url,r){
     const cid=field(d.category,["Category_Id"]),meta=ix.Category_Files?.[cid];
     if(!meta)return d;
     d.businessTotal=Number(meta.Count||0);
-    d.businesses=await firstNFromShards(env,url,meta.Shards,
-      item=>loadCategoryShard(env,url,item.file),SSR_PAGE_SIZE);
+    d.pageCount=Math.max(1,(meta.Shards||[]).length);
+    d.page=clampPage(Number(r.page||1),d.pageCount);
+    const shard=meta.Shards[d.page-1];
+    d.businesses=shard?await loadCategoryShard(env,url,shard.file):[];
+    d.hasNext=d.page<d.pageCount;
     return d;
   }
 
@@ -181,17 +210,23 @@ async function resolve(env,url,r){
   const districtMeta=await loadDistrictIndex(env,url,d.district);
   if(r.type==="district"){
     d.businessTotal=Number(districtMeta.Count||0);
-    d.businesses=await firstNFromShards(env,url,districtMeta.Shards,
-      item=>loadDistrictShard(env,url,d.district,item.file),SSR_PAGE_SIZE);
+    d.pageCount=Math.max(1,(districtMeta.Shards||[]).length);
+    d.page=clampPage(Number(r.page||1),d.pageCount);
+    const shard=districtMeta.Shards[d.page-1];
+    d.businesses=shard?await loadDistrictShard(env,url,d.district,shard.file):[];
+    d.hasNext=d.page<d.pageCount;
     return d;
   }
 
   const cid=field(d.category,["Category_Id"]);
   const shardNames=districtMeta.Category_Shard_Map?.[cid]||[];
   d.businessTotal=Number(districtMeta.Category_Counts?.[cid]||0);
-  d.businesses=await firstNFromShards(env,url,shardNames,
-    shard=>loadDistrictShard(env,url,d.district,shard),SSR_PAGE_SIZE,
-    b=>same(field(b,["Category_Id"]),cid));
+  d.pageCount=Math.max(1,shardNames.length);
+  d.page=clampPage(Number(r.page||1),d.pageCount);
+  const shard=shardNames[d.page-1];
+  d.businesses=shard?await loadDistrictShard(env,url,d.district,shard):[];
+  d.businesses=d.businesses.filter(b=>same(field(b,["Category_Id"]),cid));
+  d.hasNext=d.page<d.pageCount;
   return d;
 }
 
@@ -214,7 +249,8 @@ async function renderSeo(env,request,r){
   const t=valid?title(r,d):"Page Not Found | UBnux";
   const desc=valid?description(r,d):"The requested UBnux page could not be found.";
   const canonical=ORIGIN+pathOf(r);
-  const robots=valid&&d.indexingEnabled?"index,follow":"noindex,follow";
+  const paged=valid&&r.page>1&&r.type!=="business";
+  const robots=valid&&d.indexingEnabled?(paged?"noindex,follow":"index,follow"):"noindex,follow";
 
   html=html
     .replace(/<title>[\s\S]*?<\/title>/i,`<title>${esc(t)}</title>`)
@@ -234,13 +270,14 @@ async function renderSeo(env,request,r){
   headers.set("X-Robots-Tag",robots);
   headers.set("X-UBnux-Route",r.type);
   headers.set("X-UBnux-Data","exact-file");
+  headers.set("X-UBnux-Page",String(r.page||1));
   headers.set("Cache-Control","public, max-age=300, s-maxage=3600");
   return new Response(html,{status:valid?200:404,headers});
 }
 
 export default {
   async fetch(request,env){
-    const url=new URL(request.url),r=parse(url.pathname);
+    const url=new URL(request.url),r=parse(url.pathname,url.search);
     if(r.type!=="home"&&r.type!=="not-found"&&url.pathname.startsWith("/in/"))return renderSeo(env,request,r);
     return env.ASSETS.fetch(request);
   }
