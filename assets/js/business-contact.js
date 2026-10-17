@@ -1,8 +1,10 @@
-/* UBnux Business Contact Client v1.3.0 */
+/* UBnux Business Contact Client v1.4.0 */
 (function(window, document){
   'use strict';
 
-  var API_URL = 'https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
+  // Same-origin Cloudflare Worker proxy. The Worker talks to Google Apps Script,
+  // so the browser never depends on Apps Script CORS/redirect behaviour.
+  var API_URL = '/api/business-contact';
   var requestSerial = 0;
 
   function field(row, names){
@@ -14,11 +16,21 @@
     return '';
   }
 
+  function reset(box){
+    var call = box.querySelector('[data-contact-call]');
+    var whatsapp = box.querySelector('[data-contact-whatsapp]');
+    if (call) { call.setAttribute('hidden', ''); call.removeAttribute('href'); }
+    if (whatsapp) { whatsapp.setAttribute('hidden', ''); whatsapp.removeAttribute('href'); }
+    box.removeAttribute('data-contact-ready');
+    box.removeAttribute('data-contact-unavailable');
+  }
+
   function applyResult(box, result){
     var phone = String(result && result.phone || '').replace(/\D/g, '');
     var call = box.querySelector('[data-contact-call]');
     var whatsapp = box.querySelector('[data-contact-whatsapp]');
     if (!result || !result.found || !phone) throw new Error('Business phone not found');
+
     if (call) {
       call.href = 'tel:+' + phone;
       call.removeAttribute('hidden');
@@ -27,56 +39,43 @@
       whatsapp.href = 'https://wa.me/' + phone;
       whatsapp.removeAttribute('hidden');
     }
+
     box.removeAttribute('data-contact-loading');
     box.setAttribute('data-contact-ready', 'true');
     box.removeAttribute('data-contact-unavailable');
   }
 
-  function jsonp(box, url){
-    return new Promise(function(resolve, reject){
-      var callbackName = '__ubnuxContact' + (++requestSerial) + '_' + Date.now();
-      var script = document.createElement('script');
-      var timer = setTimeout(function(){
-        cleanup();
-        reject(new Error('Contact API JSONP timeout'));
-      }, 10000);
+  function request(box, businessId, district){
+    var url = API_URL + '?district=' + encodeURIComponent(district) + '&businessId=' + encodeURIComponent(businessId) + '&_=' + (++requestSerial);
+    box.setAttribute('data-contact-loading', 'true');
+    reset(box);
 
-      function cleanup(){
-        clearTimeout(timer);
-        try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
-        if (script.parentNode) script.parentNode.removeChild(script);
-      }
-
-      window[callbackName] = function(result){
-        cleanup();
-        resolve(result);
-      };
-      script.onerror = function(){
-        cleanup();
-        reject(new Error('Contact API JSONP failed'));
-      };
-      script.src = url + '&callback=' + encodeURIComponent(callbackName);
-      document.head.appendChild(script);
-    });
+    return fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(function(response){
+        return response.text().then(function(text){
+          var result;
+          try { result = JSON.parse(text); }
+          catch (e) { throw new Error('Contact proxy returned invalid JSON'); }
+          if (!response.ok) throw new Error(result && result.error || ('Contact proxy HTTP ' + response.status));
+          return result;
+        });
+      })
+      .then(function(result){ applyResult(box, result); })
+      .catch(function(error){
+        box.removeAttribute('data-contact-loading');
+        box.setAttribute('data-contact-unavailable', 'true');
+        if (window.console && console.warn) console.warn('[UBnux contact]', error && error.message ? error.message : error);
+      });
   }
 
   function hydrateBox(box, businessId, district){
-    if (!box || !API_URL || !businessId || !district) return;
-
-    var url = API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') +
-      'district=' + encodeURIComponent(district) + '&businessId=' + encodeURIComponent(businessId);
-
-    box.setAttribute('data-contact-loading', 'true');
-    box.removeAttribute('data-contact-unavailable');
-
-    // Apps Script Web Apps can redirect and do not reliably expose CORS headers.
-    // JSONP is therefore the primary browser-safe transport; no fake # buttons are shown.
-    jsonp(box, url)
-      .then(function(result){ applyResult(box, result); })
-      .catch(function(){
-        box.removeAttribute('data-contact-loading');
-        box.setAttribute('data-contact-unavailable', 'true');
-      });
+    if (!box || !businessId || !district) return;
+    request(box, businessId, district);
   }
 
   function hydrateBusiness(business, data){
@@ -96,7 +95,7 @@
   }
 
   window.UBnuxBusinessContact = {
-    version: '1.3.0',
+    version: '1.4.0',
     hydrateBusiness: hydrateBusiness,
     autoHydrate: autoHydrate
   };
