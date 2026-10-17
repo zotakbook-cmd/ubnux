@@ -1,1 +1,72 @@
-[]
+[
+  {
+    "Business_Title": "Demo Fashion Store Siwan",
+    "Business_Id": "DEMO-B001",
+    "District_Id": "D001",
+    "Category_Id": "C0001",
+    "Business_Slug": "demo-fashion-store-siwan",
+    "Business_Rating": 4.5,
+    "Business_Review": 12,
+    "Business_Status": "Demo",
+    "Business_Keywords": ["fashion shop", "clothing store", "siwan fashion"],
+    "Business_Address": "Demo Market, Siwan, Bihar",
+    "Business_Pincode": "841226",
+    "Business_Description": "Demo business record for testing the UBnux SEO import pipeline."
+  },
+  {
+    "Business_Title": "Demo Fashion Hub Patna",
+    "Business_Id": "DEMO-B002",
+    "District_Id": "D002",
+    "Category_Id": "C0001",
+    "Business_Slug": "demo-fashion-hub-patna",
+    "Business_Rating": 4.6,
+    "Business_Review": 18,
+    "Business_Status": "Demo",
+    "Business_Keywords": ["fashion shop", "clothing store", "patna fashion"],
+    "Business_Address": "Demo Market, Patna, Bihar",
+    "Business_Pincode": "800001",
+    "Business_Description": "Demo business record for testing global category aggregation."
+  },
+  {
+    "Business_Title": "Demo Style Studio Gopalganj",
+    "Business_Id": "DEMO-B003",
+    "District_Id": "D003",
+    "Category_Id": "C0001",
+    "Business_Slug": "demo-style-studio-gopalganj",
+    "Business_Rating": 4.4,
+    "Business_Review": 9,
+    "Business_Status": "Demo",
+    "Business_Keywords": ["fashion", "style studio", "gopalganj fashion"],
+    "Business_Address": "Demo Road, Gopalganj, Bihar",
+    "Business_Pincode": "841428",
+    "Business_Description": "Demo business record for testing district and category routes."
+  },
+  {
+    "Business_Title": "Demo Coaching Institute Siwan",
+    "Business_Id": "DEMO-B004",
+    "District_Id": "D001",
+    "Category_Id": "C0003",
+    "Business_Slug": "demo-coaching-institute-siwan",
+    "Business_Rating": 4.7,
+    "Business_Review": 21,
+    "Business_Status": "Demo",
+    "Business_Keywords": ["coaching institute", "competitive exam coaching", "siwan coaching"],
+    "Business_Address": "Demo Education Road, Siwan, Bihar",
+    "Business_Pincode": "841226",
+    "Business_Description": "Demo coaching record for testing a second category."
+  },
+  {
+    "Business_Title": "Demo Safety Training Institute Patna",
+    "Business_Id": "DEMO-B005",
+    "District_Id": "D002",
+    "Category_Id": "C0008",
+    "Business_Slug": "demo-safety-training-institute-patna",
+    "Business_Rating": 4.3,
+    "Business_Review": 7,
+    "Business_Status": "Demo",
+    "Business_Keywords": ["safety training", "safety institute", "patna safety training"],
+    "Business_Address": "Demo Industrial Area, Patna, Bihar",
+    "Business_Pincode": "800001",
+    "Business_Description": "Demo safety institute record for testing category routing."
+  }
+]
