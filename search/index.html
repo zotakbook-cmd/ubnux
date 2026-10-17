@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Search Businesses | UBnux</title>
+  <meta name="description" content="Search UBnux globally by business name, category, district and filters.">
+  <meta name="robots" content="noindex,follow">
+  <link rel="canonical" href="https://ubnux.com/search/">
+  <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="ubnux-header-inner">
+      <a class="brand" href="/">UBnux</a>
+      <form class="ubnux-header-search" action="/search/" method="get">
+        <input name="q" type="search" placeholder="Search business, category or district..." aria-label="Search UBnux">
+        <button type="submit">Search</button>
+      </form>
+    </div>
+  </header>
+  <main id="ubnux-seo-root">
+    <section class="ubnux-page-section"><div class="ubnux-container"><p class="ubnux-eyebrow">GLOBAL SEARCH</p><h1>Find the right business</h1><p class="ubnux-intro">Loading global search...</p></div></section>
+  </main>
+  <script src="/assets/js/seo-router.js" defer></script>
+  <script src="/assets/js/global-search.js" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.UBnuxGlobalSearch) window.UBnuxGlobalSearch.start();
+    });
+  </script>
+</body>
+</html>
