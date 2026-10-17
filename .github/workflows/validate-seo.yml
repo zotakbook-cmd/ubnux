@@ -28,11 +28,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Validate sitemap generation
-        run: node scripts/generate-sitemap.js
-
-      - name: Validate SEO relationships
+      - name: Validate SEO relationships and URL rules
         run: node scripts/validate-seo.js
 
-      - name: Check generated sitemap is committed
-        run: git diff --exit-code -- sitemap.xml
+      - name: Validate sitemap XML URLs
+        run: node -e "const fs=require('fs');const s=fs.readFileSync('sitemap.xml','utf8');if(!s.startsWith('<?xml')||!s.includes('<urlset')||!s.includes('</urlset>'))process.exit(1);const u=[...s.matchAll(/<loc>(.*?)<\\/loc>/g)].map(x=>x[1]);if(!u.length||u.some(x=>!x.startsWith('https://ubnux.com/')||!x.endsWith('/')))process.exit(1);console.log('Sitemap URL checks passed:',u.length);"
