@@ -1,5 +1,5 @@
 {
-  "Indexing_Enabled": false,
-  "Mode": "testing",
-  "Description": "Keep SEO route pages out of Google while UBnux uses demo/test data. Set Indexing_Enabled to true only after production business data is ready."
+  "Indexing_Enabled": true,
+  "Mode": "production",
+  "Description": "UBnux production SEO indexing is enabled. Public SEO routes may be included in sitemap.xml and indexed by search engines."
 }
