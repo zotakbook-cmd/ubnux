@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO App v1.2.0 */
+/* UBnux Fresh SEO App v1.2.1 */
 (function (window, document) {
   "use strict";
 
@@ -79,7 +79,7 @@
   }
 
   function start() {
-    var route = window.UBnuxSEORouter.parse(window.location.pathname);
+    var route = window.UBnuxSEORouter.parse(window.location.pathname, window.location.search);
 
     if (route.type === "not-found") {
       document.title = titleFor(route, {});
@@ -101,7 +101,9 @@
       var description = resolved ? descriptionFor(route, data) : "The requested UBnux page could not be found.";
       document.title = title;
       setMeta("description", description);
-      setMeta("robots", resolved ? "index,follow" : "noindex,follow");
+      var page = Math.max(1, Number(data.page || route.page || 1));
+      var paged = resolved && page > 1 && route.type !== "business";
+      setMeta("robots", resolved ? (paged ? "noindex,follow" : "index,follow") : "noindex,follow");
       setCanonical(canonical());
 
       if (!resolved) {
