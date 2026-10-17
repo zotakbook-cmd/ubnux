@@ -1,5 +1,5 @@
-/* UBnux Business Contact Client v1.7.1 */
-(function(window, document){
+/* UBnux Business Contact Client v1.8.0 */
+(function(window,document){
 'use strict';
 
 var DIRECT_API_URL='https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
@@ -16,7 +16,7 @@ function field(row,names){
 }
 
 function ensureLoadingState(box){
-  var state=box&&box.querySelector('[data-contact-loading-state]');
+  var state=box.querySelector('[data-contact-loading-state]');
   if(state)return state;
   state=document.createElement('div');
   state.className='ubnux-contact-loading';
@@ -27,11 +27,9 @@ function ensureLoadingState(box){
 }
 
 function setLoading(box,show,message){
-  var state=ensureLoadingState(box);
-  var text=state.querySelector('[data-contact-loading-text]');
+  var state=ensureLoadingState(box),text=state.querySelector('[data-contact-loading-text]');
   if(text)text.textContent=message||'Loading contact details...';
-  if(show)state.removeAttribute('hidden');
-  else state.setAttribute('hidden','');
+  if(show)state.removeAttribute('hidden');else state.setAttribute('hidden','');
 }
 
 function reset(box){
@@ -66,8 +64,8 @@ function setOptionalLink(box,selector,url){
 
 function setDescription(box,value){
   var el=box.querySelector('[data-contact-description-text]');
-  var text=String(value||'').trim();
   if(!el)return;
+  var text=String(value||'').trim();
   el.textContent=text||'No business description is available yet.';
 }
 
@@ -97,12 +95,25 @@ function applyResult(box,result){
   box.removeAttribute('data-contact-unavailable');
 }
 
+function proxyRequest(businessId,district){
+  var url=PROXY_URL+'?district='+encodeURIComponent(district)+'&businessId='+encodeURIComponent(businessId)+'&_='+(++requestSerial);
+  return fetch(url,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json'}})
+    .then(function(response){
+      return response.text().then(function(text){
+        var result;
+        try{result=JSON.parse(text);}catch(e){throw new Error('Contact proxy returned invalid JSON');}
+        if(!response.ok)throw new Error(result&&result.error||('Contact proxy HTTP '+response.status));
+        if(!result||!result.found)throw new Error(result&&result.error||'Business ID not found in contact backend');
+        return result;
+      });
+    });
+}
+
 function jsonpRequest(businessId,district){
   return new Promise(function(resolve,reject){
     var callbackName='__ubnuxContact_'+Date.now()+'_'+(++requestSerial),
-        script=document.createElement('script'),
-        finished=false,
-        timer=setTimeout(function(){finish(new Error('Contact details lookup timed out'));},10000);
+        script=document.createElement('script'),finished=false,
+        timer=setTimeout(function(){finish(new Error('Google Sheet contact lookup timed out'));},10000);
 
     function cleanup(){
       clearTimeout(timer);
@@ -111,13 +122,12 @@ function jsonpRequest(businessId,district){
     }
     function finish(error,result){
       if(finished)return;
-      finished=true;
-      cleanup();
+      finished=true;cleanup();
       if(error)reject(error);else resolve(result);
     }
 
     window[callbackName]=function(result){
-      if(!result||!result.found){finish(new Error('Business ID not found in Google Sheet'));return;}
+      if(!result||!result.found){finish(new Error(result&&result.error||'Business ID not found in Google Sheet'));return;}
       finish(null,result);
     };
     script.onerror=function(){finish(new Error('Google Sheet contact lookup failed'));};
@@ -131,36 +141,23 @@ function jsonpRequest(businessId,district){
   });
 }
 
-function proxyRequest(businessId,district){
-  var url=PROXY_URL+'?district='+encodeURIComponent(district)+'&businessId='+encodeURIComponent(businessId)+'&_='+(++requestSerial);
-  return fetch(url,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json'}})
-    .then(function(response){
-      return response.text().then(function(text){
-        var result;
-        try{result=JSON.parse(text);}catch(e){throw new Error('Contact proxy returned invalid JSON');}
-        if(!response.ok)throw new Error(result&&result.error||('Contact proxy HTTP '+response.status));
-        if(!result||!result.found||!result.phone)throw new Error('Contact proxy did not return phone');
-        return result;
-      });
-    });
-}
-
 function request(box,businessId,district){
   if(!businessId||!district)return;
   reset(box);
 
-  // Primary: one JSONP request returns the complete A:E row.
-  jsonpRequest(businessId,district)
+  // Same-origin proxy first. It avoids browser CORS/redirect problems with Apps Script.
+  proxyRequest(businessId,district)
     .then(function(result){applyResult(box,result);})
-    .catch(function(error){
-      // Fallback keeps Call/WhatsApp working if Apps Script is temporarily unavailable.
-      return proxyRequest(businessId,district)
+    .catch(function(proxyError){
+      // Direct JSONP is the second path and returns the complete A:E row.
+      return jsonpRequest(businessId,district)
         .then(function(result){applyResult(box,result);})
-        .catch(function(){
+        .catch(function(directError){
           setLoading(box,true,'Contact details unavailable');
           box.removeAttribute('data-contact-loading');
           box.setAttribute('data-contact-unavailable','true');
-          if(window.console&&console.warn)console.warn('[UBnux contact]',error&&error.message?error.message:error);
+          box.setAttribute('data-contact-error',String(directError&&directError.message||proxyError&&proxyError.message||'Unknown error'));
+          if(window.console&&console.warn)console.warn('[UBnux contact]',proxyError&&proxyError.message, directError&&directError.message);
         });
     });
 }
@@ -168,11 +165,18 @@ function request(box,businessId,district){
 function hydrateBusiness(business,data){
   var box=document.querySelector('[data-ubnux-contact-actions]');
   if(!box)return;
-  hydrateBox(box,field(business,['Business_Id'])||box.getAttribute('data-business-id')||'',field(data&&data.district,['District_Title'])||box.getAttribute('data-district')||'');
+  var id=field(business,['Business_Id','BusinessID','Business_ID','id']);
+  var district=field(data&&data.district,['District_Title','District_Name','DistrictName'])||box.getAttribute('data-district')||'';
+  hydrateBox(box,id||box.getAttribute('data-business-id')||'',district);
 }
 
 function hydrateBox(box,businessId,district){
-  if(!box||!businessId||!district)return;
+  if(!box)return;
+  businessId=String(businessId||box.getAttribute('data-business-id')||'').trim();
+  district=String(district||box.getAttribute('data-district')||'').trim();
+  if(!businessId||!district)return;
+  box.setAttribute('data-business-id',businessId);
+  box.setAttribute('data-district',district);
   request(box,businessId,district);
 }
 
@@ -182,6 +186,6 @@ function autoHydrate(){
   });
 }
 
-window.UBnuxBusinessContact={version:'1.7.1',hydrateBusiness:hydrateBusiness,autoHydrate:autoHydrate};
+window.UBnuxBusinessContact={version:'1.8.0',hydrateBusiness:hydrateBusiness,autoHydrate:autoHydrate};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoHydrate);else autoHydrate();
 })(window,document);
