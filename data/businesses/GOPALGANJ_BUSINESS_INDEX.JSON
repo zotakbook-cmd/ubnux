@@ -58,24 +58,5 @@
       "fire safety"
     ],
     "Business_Seo_Url": "https://ubnux.com/in/bihar/gopalganj/safety-training-institute/gopalganj-safety-academy/"
-  },
-  {
-    "Business_Title": "Demo Style Studio Gopalganj",
-    "Business_Id": "DEMO-B003",
-    "District_Id": "D003",
-    "Category_Id": "C0001",
-    "Business_Slug": "demo-style-studio-gopalganj",
-    "Business_Rating": 4.4,
-    "Business_Review": 9,
-    "Business_Status": "Demo",
-    "Business_Keywords": [
-      "fashion",
-      "style studio",
-      "gopalganj fashion"
-    ],
-    "Business_Address": "Demo Road, Gopalganj, Bihar",
-    "Business_Pincode": "841428",
-    "Business_Description": "Demo business record for testing district and category routes.",
-    "Business_Seo_Url": "https://ubnux.com/in/bihar/gopalganj/fashion/demo-style-studio-gopalganj/"
   }
 ]
