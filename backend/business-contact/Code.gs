@@ -1,6 +1,10 @@
-/* UBnux Business Contact API v1.1.0
- * District sheet name = district (Siwan, Patna, etc.)
- * Column A = Business ID, Column B = phone number
+/* UBnux Business Contact API v1.2.0
+ * District sheet: Siwan, Patna, etc.
+ * Column A = Business ID
+ * Column B = phone number
+ * Column C = map / Google Maps URL or location text
+ * Column D = website URL
+ * Column E = optional business description
  */
 
 const UBNUX_CONTACT_CONFIG = {
@@ -16,43 +20,64 @@ function doGet(e) {
 
   let payload;
   if (!district || !businessId) {
-    payload = {ok:false,error:'district and businessId are required'};
+    payload = {ok:false,found:false,error:'district and businessId are required'};
   } else {
     try {
-      const phone = findPhone_(district, businessId);
-      payload = {ok:true, found:!!phone, phone:phone || ''};
+      const record = findBusiness_(district, businessId);
+      payload = {
+        ok:true,
+        found:!!record.phone,
+        phone:record.phone || '',
+        map:record.map || '',
+        website:record.website || '',
+        description:record.description || ''
+      };
     } catch (err) {
-      payload = {ok:false,error:String(err && err.message ? err.message : err)};
+      payload = {ok:false,found:false,error:String(err && err.message ? err.message : err)};
     }
   }
 
   return callback ? jsonp_(callback, payload) : json_(payload);
 }
 
-function findPhone_(district, businessId) {
+function findBusiness_(district, businessId) {
   const cache = CacheService.getScriptCache();
-  const key = 'phone:' + normalize_(district) + ':' + normalize_(businessId);
+  const key = 'business:' + normalize_(district) + ':' + normalize_(businessId);
   const cached = cache.get(key);
-  if (cached !== null) return cached;
+  if (cached !== null) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
   if (!UBNUX_CONTACT_CONFIG.SPREADSHEET_ID || UBNUX_CONTACT_CONFIG.SPREADSHEET_ID === 'PUT_YOUR_GOOGLE_SHEET_ID_HERE') {
     throw new Error('Google Spreadsheet ID is not configured');
   }
+
   const ss = SpreadsheetApp.openById(UBNUX_CONTACT_CONFIG.SPREADSHEET_ID);
   const sheet = findDistrictSheet_(ss, district);
-  if (!sheet) return '';
+  if (!sheet) return {phone:'',map:'',website:'',description:''};
+
   const lastRow = sheet.getLastRow();
-  if (lastRow < 1) return '';
-  const values = sheet.getRange(1, 1, lastRow, 2).getDisplayValues();
+  if (lastRow < 1) return {phone:'',map:'',website:'',description:''};
+
+  const values = sheet.getRange(1, 1, lastRow, 5).getDisplayValues();
   const target = normalize_(businessId);
+
   for (let i = 0; i < values.length; i++) {
     if (normalize_(values[i][0]) === target) {
-      const phone = normalizePhone_(values[i][1]);
-      cache.put(key, phone || '', phone ? UBNUX_CONTACT_CONFIG.CACHE_SECONDS : 60);
-      return phone;
+      const record = {
+        phone: normalizePhone_(values[i][1]),
+        map: clean_(values[i][2]),
+        website: clean_(values[i][3]),
+        description: clean_(values[i][4])
+      };
+      cache.put(key, JSON.stringify(record), record.phone ? UBNUX_CONTACT_CONFIG.CACHE_SECONDS : 60);
+      return record;
     }
   }
-  cache.put(key, '', 60);
-  return '';
+
+  const empty = {phone:'',map:'',website:'',description:''};
+  cache.put(key, JSON.stringify(empty), 60);
+  return empty;
 }
 
 function findDistrictSheet_(ss, district) {
@@ -69,7 +94,7 @@ function normalize_(value) {
 }
 
 function clean_(value) {
-  return String(value == null ? '' : value).trim().slice(0, 120);
+  return String(value == null ? '' : value).trim().slice(0, 2000);
 }
 
 function cleanCallback_(value) {
