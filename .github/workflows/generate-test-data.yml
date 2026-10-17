@@ -1,0 +1,25 @@
+name: Generate Large Test Data
+on:
+  push:
+    paths:
+      - .github/test-data-trigger
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate 1205 records per district
+        run: node scripts/generate-test-business-data.js
+      - name: Commit generated data and remove temporary generator
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/test-data-trigger .github/workflows/generate-test-data.yml scripts/generate-test-business-data.js
+          git add data/businesses .github scripts
+          git commit -m "test: expand district business data to 1205 records" || exit 0
+          git push
