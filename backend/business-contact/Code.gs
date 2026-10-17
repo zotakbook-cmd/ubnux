@@ -1,9 +1,16 @@
-/* UBnux Business Contact API v2.3.1
+/* UBnux Business Contact API v2.4.0
  * A = Business ID
  * B = Phone
  * C = Map / Google Maps URL or location text
  * D = Website URL
  * E = Business Description
+ *
+ * IMPORTANT:
+ * We intentionally do NOT use ContentService for the response.
+ * Google currently has an intermittent ContentService 302 ->
+ * script.googleusercontent.com -> 404 delivery problem.
+ * The response is therefore returned through HtmlService with a
+ * base64 JSON payload embedded in a small HTML document.
  */
 
 const UBNUX_CONTACT_CONFIG = {
@@ -16,11 +23,10 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   const district = clean_(p.district);
   const businessId = clean_(p.businessId);
-  const callback = cleanCallback_(p.callback);
   let payload;
 
   if (!district || !businessId) {
-    payload = { ok:false, found:false, error:'district and businessId are required' };
+    payload = { ok:false, found:false, businessId:businessId, district:district, phone:'', map:'', website:'', description:'', error:'district and businessId are required' };
   } else {
     try {
       const record = findBusiness_(district, businessId);
@@ -50,7 +56,7 @@ function doGet(e) {
     }
   }
 
-  return callback ? jsonp_(callback, payload) : json_(payload);
+  return htmlJson_(payload);
 }
 
 function findBusiness_(district, businessId) {
@@ -113,16 +119,11 @@ function normalize_(value) {
 }
 
 function normalizeId_(value) {
-  return String(value == null ? '' : value).trim().toLowerCase();
+  return String(value == null ? '' : value).trim().toLowerCase().replace(/^\/+|\/+$/g, '');
 }
 
 function clean_(value) {
   return String(value == null ? '' : value).trim().slice(0, 4000);
-}
-
-function cleanCallback_(value) {
-  const callback = String(value == null ? '' : value).trim();
-  return /^[A-Za-z_$][0-9A-Za-z_$\.]{0,80}$/.test(callback) ? callback : '';
 }
 
 function normalizePhone_(value) {
@@ -140,12 +141,12 @@ function cacheEmpty_(cache, key) {
   return record;
 }
 
-function json_(payload) {
-  return ContentService.createTextOutput(JSON.stringify(payload))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function jsonp_(callback, payload) {
-  return ContentService.createTextOutput(callback + '(' + JSON.stringify(payload) + ');')
-    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+function htmlJson_(payload) {
+  const json = JSON.stringify(payload);
+  const encoded = Utilities.base64Encode(Utilities.newBlob(json).getBytes());
+  const html = '<!doctype html><html><head><meta charset="utf-8"></head><body>' +
+    '<div id="ubnux-contact-data" data-encoding="base64">' + encoded + '</div>' +
+    '</body></html>';
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('UBnux Contact API');
 }
