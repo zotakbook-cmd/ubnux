@@ -1,16 +1,13 @@
-/* UBnux Business Contact API v2.4.0
+/* UBnux Business Contact API v2.4.1
  * A = Business ID
  * B = Phone
  * C = Map / Google Maps URL or location text
  * D = Website URL
  * E = Business Description
  *
- * IMPORTANT:
- * We intentionally do NOT use ContentService for the response.
- * Google currently has an intermittent ContentService 302 ->
+ * Uses HtmlService instead of ContentService for the response.
+ * This avoids the current intermittent ContentService 302 ->
  * script.googleusercontent.com -> 404 delivery problem.
- * The response is therefore returned through HtmlService with a
- * base64 JSON payload embedded in a small HTML document.
  */
 
 const UBNUX_CONTACT_CONFIG = {
@@ -26,20 +23,30 @@ function doGet(e) {
   let payload;
 
   if (!district || !businessId) {
-    payload = { ok:false, found:false, businessId:businessId, district:district, phone:'', map:'', website:'', description:'', error:'district and businessId are required' };
+    payload = {
+      ok:false,
+      found:false,
+      businessId:businessId,
+      district:district,
+      phone:'',
+      map:'',
+      website:'',
+      description:'',
+      error:'district and businessId are required'
+    };
   } else {
     try {
       const record = findBusiness_(district, businessId);
       payload = {
-        ok: true,
-        found: !!record.found,
-        businessId: businessId,
-        district: district,
-        phone: record.phone || '',
-        map: record.map || '',
-        website: record.website || '',
-        description: record.description || '',
-        error: record.found ? '' : 'Business ID not found'
+        ok:true,
+        found:!!record.found,
+        businessId:businessId,
+        district:district,
+        phone:record.phone || '',
+        map:record.map || '',
+        website:record.website || '',
+        description:record.description || '',
+        error:record.found ? '' : 'Business ID not found'
       };
     } catch (err) {
       payload = {
@@ -82,11 +89,11 @@ function findBusiness_(district, businessId) {
     if (!rowId || rowId !== target) continue;
 
     const record = {
-      found: true,
-      phone: normalizePhone_(values[i][1]),
-      map: clean_(values[i][2]),
-      website: clean_(values[i][3]),
-      description: clean_(values[i][4])
+      found:true,
+      phone:normalizePhone_(values[i][1]),
+      map:clean_(values[i][2]),
+      website:clean_(values[i][3]),
+      description:clean_(values[i][4])
     };
 
     cache.put(key, JSON.stringify(record), UBNUX_CONTACT_CONFIG.CACHE_SECONDS);
@@ -142,11 +149,6 @@ function cacheEmpty_(cache, key) {
 }
 
 function htmlJson_(payload) {
-  const json = JSON.stringify(payload);
-  const encoded = Utilities.base64Encode(Utilities.newBlob(json).getBytes());
-  const html = '<!doctype html><html><head><meta charset="utf-8"></head><body>' +
-    '<div id="ubnux-contact-data" data-encoding="base64">' + encoded + '</div>' +
-    '</body></html>';
-  return HtmlService.createHtmlOutput(html)
+  return HtmlService.createHtmlOutput(JSON.stringify(payload))
     .setTitle('UBnux Contact API');
 }
