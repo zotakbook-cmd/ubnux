@@ -1,0 +1,5 @@
+{
+  "Indexing_Enabled": false,
+  "Mode": "testing",
+  "Description": "Keep SEO route pages out of Google while UBnux uses demo/test data. Set Indexing_Enabled to true only after production business data is ready."
+}
