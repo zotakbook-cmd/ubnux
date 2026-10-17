@@ -1,47 +1,19 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>UBnux — Local Business Search</title>
-  <meta name="description" content="UBnux local business search engine.">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://ubnux.com/">
-  <link rel="stylesheet" href="/assets/css/main.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UBnux — Local Business Search</title>
+<meta name="description" content="Find local businesses, products and services on UBnux.">
+<link rel="stylesheet" href="/assets/css/main.css?v=daa11a78687785a00e16c1fd9cbd613cf97f0906">
 </head>
 <body>
-  <header class="site-header">
-    <div class="ubnux-header-inner">
-      <a class="brand" href="/">UBnux</a>
-      <form id="ubnux-global-header-form" class="ubnux-global-header-form" action="/search/" method="get">
-        <div class="ubnux-global-header-main">
-          <input id="ubnux-global-header-q" name="q" type="search" placeholder="Search business, category or district..." aria-label="Search UBnux" autocomplete="off">
-          <button type="submit">Search</button>
-        </div>
-        <div class="ubnux-global-header-filters" aria-label="Search filters">
-          <select id="ubnux-global-header-state" name="state" aria-label="State"><option value="">All States</option></select>
-          <select id="ubnux-global-header-district" name="district" aria-label="District"><option value="">All Districts</option></select>
-          <select id="ubnux-global-header-category" name="category" aria-label="Category"><option value="">All Categories</option></select>
-          <select id="ubnux-global-header-rating" name="rating" aria-label="Minimum rating"><option value="">Any Rating</option><option value="4">4+ Rating</option><option value="3">3+ Rating</option></select>
-          <select id="ubnux-global-header-verified" name="verified" aria-label="Business verification"><option value="">All Businesses</option><option value="true">Verified Only</option></select>
-          <select id="ubnux-global-header-sort" name="sort" aria-label="Sort results"><option value="relevance">Best Match</option><option value="rating">Highest Rating</option><option value="reviews">Most Reviews</option><option value="name">Name A–Z</option></select>
-        </div>
-      </form>
-    </div>
-  </header>
-  <main id="ubnux-seo-root">
-    <section class="ubnux-home"><div class="ubnux-container"><p class="ubnux-eyebrow">LOCAL SEARCH ENGINE</p><h1>Find businesses, products and services.</h1><p class="ubnux-intro">Loading UBnux...</p></div></section>
-  </main>
-  <script>
-    window.UBNUX_CONTACT_API_URL = '/api/business-contact';
-  </script>
-  <script src="/assets/js/seo-router.js" defer></script>
-  <script src="/assets/js/seo-data.js" defer></script>
-  <script src="/assets/js/business-contact.js?v=1.6.1" defer></script>
-  <script src="/assets/js/seo-renderer.js?v=1.5.0" defer></script>
-  <script src="/assets/js/seo-schema.js" defer></script>
-  <script src="/assets/js/seo-app.js" defer></script>
-  <script src="/assets/js/global-search-ui.js" defer></script>
-  <script src="/assets/js/global-search.js" defer></script>
+<div id="ubnux-app">
+  <header id="ubnux-header"></header>
+  <main id="ubnux-seo-root"></main>
+  <footer id="ubnux-footer"></footer>
+</div>
+<script src="/assets/js/business-contact.js?v=2.0.0" defer></script>
+<script src="/assets/js/seo-renderer.js?v=1.5.0" defer></script>
 </body>
 </html>
