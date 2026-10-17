@@ -3,7 +3,7 @@
   'use strict';
 
   var PROXY_URL = '/api/business-contact';
-  var DIRECT_API_URL = 'https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
+  var DIRECT_API_URL = 'https://script.google.com/macros/s/AKfycbzb2ycoXqEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
   var requestSerial = 0;
 
   function field(row, names){
