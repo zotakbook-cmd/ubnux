@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO App v1.2.1 */
+/* UBnux Fresh SEO App v1.2.2 */
 (function (window, document) {
   "use strict";
 
@@ -79,6 +79,9 @@
   }
 
   function start() {
+    var ssr = document.getElementById("ubnux-seo-ssr");
+    if (ssr) ssr.remove();
+
     var route = window.UBnuxSEORouter.parse(window.location.pathname, window.location.search);
 
     if (route.type === "not-found") {
