@@ -32,6 +32,9 @@ function businessFiles() {
     .sort();
 }
 
+const seoConfig = readJson(path.join(dataDir, 'SEO_CONFIG.JSON'));
+const indexingEnabled = seoConfig && seoConfig.Indexing_Enabled === true;
+
 const stateRaw = readJson(path.join(dataDir, 'STATE.JSON'));
 const states = Array.isArray(stateRaw) ? stateRaw : [stateRaw];
 const districts = readJson(path.join(dataDir, 'DISTRICT.JSON'));
@@ -53,41 +56,45 @@ const add = value => {
   if (url) urls.add(url);
 };
 
+// Keep the public sitemap safe while demo/test data is being used.
 add('/');
-for (const state of states) add(state.State_Seo_Url || `/in/${state.State_Slug}/`);
-for (const district of districts) {
-  const state = stateById.get(district.State_Id);
-  if (!state) continue;
-  add(district.District_Seo_Url || `/in/${state.State_Slug}/${district.District_Slug}/`);
-}
-for (const category of categories) add(category.Category_Seo_Url || `/in/all/${category.Category_Slug}/`);
 
-// Only publish district/category combinations that have at least one business.
-const districtCategoryKeys = new Set();
-for (const business of businesses) {
-  const district = districtById.get(business.District_Id);
-  const category = categoryById.get(business.Category_Id);
-  if (!district || !category) continue;
-  const state = stateById.get(district.State_Id);
-  if (!state) continue;
-  const key = `${district.District_Id}|${category.Category_Id}`;
-  districtCategoryKeys.add(key);
-}
-for (const key of districtCategoryKeys) {
-  const [districtId, categoryId] = key.split('|');
-  const district = districtById.get(districtId);
-  const category = categoryById.get(categoryId);
-  const state = district && stateById.get(district.State_Id);
-  if (!state || !district || !category) continue;
-  add(`/in/${state.State_Slug}/${district.District_Slug}/${category.Category_Slug}/`);
-}
+if (indexingEnabled) {
+  for (const state of states) add(state.State_Seo_Url || `/in/${state.State_Slug}/`);
+  for (const district of districts) {
+    const state = stateById.get(district.State_Id);
+    if (!state) continue;
+    add(district.District_Seo_Url || `/in/${state.State_Slug}/${district.District_Slug}/`);
+  }
+  for (const category of categories) add(category.Category_Seo_Url || `/in/all/${category.Category_Slug}/`);
 
-for (const business of businesses) {
-  const district = districtById.get(business.District_Id);
-  const category = categoryById.get(business.Category_Id);
-  const state = district && stateById.get(district.State_Id);
-  if (!district || !category || !state) continue;
-  add(business.Business_Seo_Url || `/in/${state.State_Slug}/${district.District_Slug}/${category.Category_Slug}/${business.Business_Slug}/`);
+  // Only publish district/category combinations that have at least one business.
+  const districtCategoryKeys = new Set();
+  for (const business of businesses) {
+    const district = districtById.get(business.District_Id);
+    const category = categoryById.get(business.Category_Id);
+    if (!district || !category) continue;
+    const state = stateById.get(district.State_Id);
+    if (!state) continue;
+    const key = `${district.District_Id}|${category.Category_Id}`;
+    districtCategoryKeys.add(key);
+  }
+  for (const key of districtCategoryKeys) {
+    const [districtId, categoryId] = key.split('|');
+    const district = districtById.get(districtId);
+    const category = categoryById.get(categoryId);
+    const state = district && stateById.get(district.State_Id);
+    if (!state || !district || !category) continue;
+    add(`/in/${state.State_Slug}/${district.District_Slug}/${category.Category_Slug}/`);
+  }
+
+  for (const business of businesses) {
+    const district = districtById.get(business.District_Id);
+    const category = categoryById.get(business.Category_Id);
+    const state = district && stateById.get(district.State_Id);
+    if (!district || !category || !state) continue;
+    add(business.Business_Seo_Url || `/in/${state.State_Slug}/${district.District_Slug}/${category.Category_Slug}/${business.Business_Slug}/`);
+  }
 }
 
 const xml = [
@@ -99,4 +106,4 @@ const xml = [
 ].join('\n');
 
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), xml, 'utf8');
-console.log(`Generated sitemap.xml with ${urls.size} URLs.`);
+console.log(`Generated sitemap.xml with ${urls.size} URLs (indexing enabled: ${indexingEnabled}).`);
