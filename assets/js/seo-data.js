@@ -1,140 +1,27 @@
-/* UBnux Exact SEO Data Resolver v2.0.0 */
-(function (window) {
-  "use strict";
-
-  var BASE = "/data/";
-  var cache = Object.create(null);
-
-  function normalize(value) { return String(value == null ? "" : value).trim().toLowerCase(); }
-  function readJSON(path) {
-    if (cache[path]) return cache[path];
-    var request = fetch(BASE + path, { cache: "default" }).then(function (response) {
-      if (!response.ok) throw new Error("Data request failed: " + path);
-      return response.json();
-    });
-    cache[path] = request;
-    return request;
-  }
-  function arrayFrom(data, keys) {
-    if (Array.isArray(data)) return data;
-    for (var i = 0; i < keys.length; i++) if (Array.isArray(data && data[keys[i]])) return data[keys[i]];
-    return [];
-  }
-  function field(row, names) {
-    for (var i = 0; i < names.length; i++) if (row && row[names[i]] != null && String(row[names[i]]).trim() !== "") return String(row[names[i]]).trim();
-    return "";
-  }
-  function findBySlugOrId(rows, slug, idNames, slugNames) {
-    var target = normalize(slug);
-    return rows.find(function (row) { return normalize(field(row, idNames)) === target || normalize(field(row, slugNames)) === target; }) || null;
-  }
-  function findDistrict(indexes, slug) { return findBySlugOrId(indexes.districts, slug, ["District_Id","districtId","id"], ["District_Slug","districtSlug","slug"]); }
-  function findState(indexes, slug) { return findBySlugOrId(indexes.states, slug, ["State_Id","stateId","id"], ["State_Slug","stateSlug","slug"]); }
-  function findCategory(indexes, slug) { return findBySlugOrId(indexes.categories, slug, ["Category_Id","categoryId","id"], ["Category_Slug","categorySlug","slug"]); }
-
-  function loadIndex() {
-    return readJSON("SEO_INDEX.JSON").then(function (raw) {
-      return {
-        states: arrayFrom(raw, ["States"]),
-        districts: arrayFrom(raw, ["Districts"]),
-        categories: arrayFrom(raw, ["Categories"]),
-        categoryFiles: raw.Category_Files || {},
-        raw: raw
-      };
-    });
-  }
-  function loadIndexes() { return loadIndex(); }
-
-  function loadDistrictIndex(district) {
-    var id = field(district, ["District_Id","districtId","id"]);
-    return readJSON("district-index/" + encodeURIComponent(id) + "/INDEX.JSON");
-  }
-  function loadDistrictBusinesses(district, shardNumber) {
-    var shard = Number(shardNumber || 1);
-    return loadDistrictIndex(district).then(function (meta) {
-      var item = meta.Shards && meta.Shards[shard - 1];
-      if (!item) return [];
-      return readJSON(item.file).then(function (data) { return arrayFrom(data, ["businesses","data","items"]); });
-    });
-  }
-  function loadBusiness(district, businessSlug) {
-    return loadDistrictIndex(district).then(function (meta) {
-      var file = meta.Business_Slug_To_Shard && meta.Business_Slug_To_Shard[normalize(businessSlug)];
-      if (!file) return null;
-      return readJSON("district-index/" + encodeURIComponent(field(district,["District_Id"])) + "/" + file).then(function (rows) {
-        rows = arrayFrom(rows, ["businesses","data","items"]);
-        return rows.find(function (b) { return normalize(field(b,["Business_Slug","businessSlug","slug"])) === normalize(businessSlug); }) || null;
-      });
-    });
-  }
-  function loadCategoryBusinesses(category, shardNumber) {
-    var id = field(category, ["Category_Id","categoryId","id"]);
-    if (!id) return Promise.resolve([]);
-    var meta = null;
-    return loadIndex().then(function (ix) {
-      meta = ix.categoryFiles[id];
-      if (!meta) return [];
-      var shard = Number(shardNumber || 1), item = meta.Shards && meta.Shards[shard - 1];
-      if (!item) return [];
-      return readJSON("category-index/" + item.file).then(function (data) { return arrayFrom(data, ["businesses","data","items"]); });
-    });
-  }
-  function same(a,b) { return normalize(a) !== "" && normalize(a) === normalize(b); }
-  function stateOwnsDistrict(state,district) { return !!state && !!district && same(field(state,["State_Id"]),field(district,["State_Id"])); }
-  function businessMatchesContext(b,d,c) { return same(field(b,["District_Id"]),field(d,["District_Id"])) && (!c || same(field(b,["Category_Id"]),field(c,["Category_Id"]))); }
-
-  function resolve(route) {
-    return loadIndex().then(function (indexes) {
-      var result = { route: route, indexes: indexes, state:null, district:null, category:null, business:null, businesses:[], businessTotal:0, errors:[] };
-      if (route.stateSlug) result.state = findState(indexes, route.stateSlug);
-      if (route.districtSlug) result.district = findDistrict(indexes, route.districtSlug);
-      if (route.categorySlug) result.category = findCategory(indexes, route.categorySlug);
-
-      if (route.type === "home") return result;
-      if (route.type === "state") { if (!result.state) result.errors.push("State not found"); return result; }
-      if (route.type === "category") {
-        if (!result.category) { result.errors.push("Category not found"); return result; }
-        var meta = indexes.categoryFiles[field(result.category,["Category_Id"])];
-        result.businessTotal = meta ? Number(meta.Count || 0) : 0;
-        return loadCategoryBusinesses(result.category, 1).then(function (rows) {
-          result.businesses = rows.filter(function (b) { return same(field(b,["Category_Id"]),field(result.category,["Category_Id"])); });
-          return result;
-        });
-      }
-
-      if (!result.state) result.errors.push("State not found");
-      if (!result.district) result.errors.push("District not found");
-      if (!result.state || !result.district) return result;
-      if (!stateOwnsDistrict(result.state,result.district)) { result.errors.push("District does not belong to state"); return result; }
-      if (route.type === "district" && result.category) { result.errors.push("Invalid district route"); return result; }
-      if ((route.type === "district-category" || route.type === "business") && !result.category) { result.errors.push("Category not found"); return result; }
-
-      var did = field(result.district,["District_Id"]);
-      var districtMeta = result.district;
-      result.businessTotal = Number(districtMeta.Count || 0);
-      if (route.type === "business") {
-        return loadBusiness(result.district, route.businessSlug).then(function (business) {
-          result.business = business;
-          result.businesses = business ? [business] : [];
-          if (!business) result.errors.push("Business not found");
-          return result;
-        });
-      }
-      return loadDistrictBusinesses(result.district,1).then(function (rows) {
-        result.businesses = rows.filter(function (b) { return businessMatchesContext(b,result.district,result.category); });
-        if (result.category) result.businessTotal = result.businesses.length < 1000 ? result.businesses.length : Number(districtMeta.Count || 0);
-        return result;
-      });
-    });
-  }
-
-  window.UBnuxSEOData = {
-    version: "2.0.0",
-    loadIndexes: loadIndexes,
-    loadDistrictIndex: loadDistrictIndex,
-    loadDistrictBusinesses: loadDistrictBusinesses,
-    loadBusiness: loadBusiness,
-    loadCategoryBusinesses: loadCategoryBusinesses,
-    resolve: resolve
-  };
+/* UBnux Exact SEO Data Resolver v2.1.0 */
+(function(window){"use strict";
+var BASE="/data/",cache=Object.create(null);
+function n(v){return String(v==null?"":v).trim().toLowerCase()}
+function json(p){if(cache[p])return cache[p];cache[p]=fetch(BASE+p,{cache:"default"}).then(function(r){if(!r.ok)throw Error("Data request failed: "+p);return r.json()});return cache[p]}
+function arr(d,k){if(Array.isArray(d))return d;for(var i=0;i<k.length;i++)if(Array.isArray(d&&d[k[i]]))return d[k[i]];return[]}
+function f(r,ns){for(var i=0;i<ns.length;i++)if(r&&r[ns[i]]!=null&&String(r[ns[i]]).trim()!=="")return String(r[ns[i]]).trim();return""}
+function find(a,s,id,sl){s=n(s);return a.find(function(x){return n(f(x,id))===s||n(f(x,sl))===s})||null}
+function index(){return json("SEO_INDEX.JSON").then(function(x){return{states:arr(x,["States"]),districts:arr(x,["Districts"]),categories:arr(x,["Categories"]),categoryFiles:x.Category_Files||{},raw:x}})}
+function districtIndex(d){return json("district-index/"+encodeURIComponent(f(d,["District_Id","districtId","id"]))+"/INDEX.JSON")}
+function page(r){var x=Number(r&&r.page);return isFinite(x)&&x>0?Math.floor(x):1}
+function districtBusinesses(d,p){return districtIndex(d).then(function(m){var x=m.Shards&&m.Shards[page({page:p})-1];if(!x)return[];return json("district-index/"+encodeURIComponent(f(d,["District_Id"]))+"/"+String(x.file).split("/").pop()).then(function(v){return arr(v,["businesses","data","items"])})})}
+function business(d,s){return districtIndex(d).then(function(m){var file=m.Business_Slug_To_Shard&&m.Business_Slug_To_Shard[n(s)];if(!file)return null;return json("district-index/"+encodeURIComponent(f(d,["District_Id"]))+"/"+file).then(function(v){return arr(v,["businesses","data","items"]).find(function(b){return n(f(b,["Business_Slug","businessSlug","slug"]))===n(s)})||null})})}
+function categoryBusinesses(c,p){var id=f(c,["Category_Id","categoryId","id"]);return index().then(function(ix){var m=ix.categoryFiles[id],x=m&&m.Shards&&m.Shards[page({page:p})-1];if(!x)return[];return json("category-index/"+x.file).then(function(v){return arr(v,["businesses","data","items"])})})}
+function districtCategoryBusinesses(d,c,p){var did=f(d,["District_Id"]),cid=f(c,["Category_Id"]);return districtIndex(d).then(function(m){var files=m.Category_Shard_Map&&m.Category_Shard_Map[cid]||[],file=files[page({page:p})-1];if(!file)return[];return json("district-index/"+encodeURIComponent(did)+"/"+file).then(function(v){return arr(v,["businesses","data","items"]).filter(function(b){return n(f(b,["Category_Id"]))===n(cid)})})})}
+function same(a,b){return n(a)!==""&&n(a)===n(b)}
+function resolve(r){return index().then(function(ix){var out={route:r,indexes:ix,state:null,district:null,category:null,business:null,businesses:[],businessTotal:0,page:page(r),errors:[]};if(r.stateSlug)out.state=find(ix.states,r.stateSlug,["State_Id"],["State_Slug"]);if(r.districtSlug)out.district=find(ix.districts,r.districtSlug,["District_Id"],["District_Slug"]);if(r.categorySlug)out.category=find(ix.categories,r.categorySlug,["Category_Id"],["Category_Slug"]);
+if(r.type==="home")return out;if(r.type==="state"){if(!out.state)out.errors.push("State not found");return out}
+if(r.type==="category"){if(!out.category){out.errors.push("Category not found");return out}var cm=ix.categoryFiles[f(out.category,["Category_Id"])];out.businessTotal=cm?Number(cm.Count||0):0;return categoryBusinesses(out.category,out.page).then(function(x){out.businesses=x;return out})}
+if(!out.state)out.errors.push("State not found");if(!out.district)out.errors.push("District not found");if(!out.state||!out.district)return out;if(!same(f(out.state,["State_Id"]),f(out.district,["State_Id"]))) {out.errors.push("District does not belong to state");return out}
+if(r.type==="district"&&out.category){out.errors.push("Invalid district route");return out}if((r.type==="district-category"||r.type==="business")&&!out.category){out.errors.push("Category not found");return out}
+var dm=ix.districts.find(function(d){return same(f(d,["District_Id"]),f(out.district,["District_Id"]))})||{};out.businessTotal=Number(dm.Count||0);
+if(r.type==="business")return business(out.district,r.businessSlug).then(function(b){out.business=b;out.businesses=b?[b]:[];if(!b)out.errors.push("Business not found");return out});
+if(r.type==="district-category"){out.businessTotal=Number((dm.Category_Counts||{})[f(out.category,["Category_Id"])]||0);return districtCategoryBusinesses(out.district,out.category,out.page).then(function(x){out.businesses=x;return out})}
+return districtBusinesses(out.district,out.page).then(function(x){out.businesses=x;return out})})}
+window.UBnuxSEOData={version:"2.1.0",loadIndexes:index,loadDistrictIndex:districtIndex,loadDistrictBusinesses:districtBusinesses,loadBusiness:business,loadCategoryBusinesses:categoryBusinesses,loadDistrictCategoryBusinesses:districtCategoryBusinesses,resolve:resolve};
 })(window);
