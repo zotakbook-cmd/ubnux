@@ -1,4 +1,4 @@
-/* UBnux SEO App v1.3.0 */
+/* UBnux SEO App v1.4.0 */
 (function (window, document) {
   "use strict";
 
@@ -79,16 +79,9 @@
     root.innerHTML = '<section class="ubnux-page-section"><div class="ubnux-container"><p class="ubnux-eyebrow">404</p><h1>Page not found</h1><p class="ubnux-intro">The requested UBnux page does not exist.</p><p><a class="ubnux-link" href="/">Go to UBnux home</a></p></div></section>';
   }
 
-  function handoffSSR() {
-    var marker = document.getElementById("ubnux-seo-ssr");
-    var root = document.getElementById("ubnux-seo-root");
-    if (!marker || !root) return;
-    root.innerHTML = marker.innerHTML;
-    marker.remove();
-  }
-
   function start() {
-    handoffSSR();
+    var root = document.getElementById("ubnux-seo-root");
+    var hasSSR = !!(root && root.getAttribute("data-ubnux-ssr") === "true");
     var route = window.UBnuxSEORouter.parse(window.location.pathname, window.location.search);
 
     if (route.type === "not-found") {
@@ -97,7 +90,7 @@
       setMeta("robots", "noindex,nofollow");
       setCanonical(canonical());
       if (window.UBnuxSEOSchema) window.UBnuxSEOSchema.remove();
-      renderNotFound();
+      if (!hasSSR) renderNotFound();
       return;
     }
 
@@ -118,21 +111,25 @@
 
       if (!resolved) {
         if (window.UBnuxSEOSchema) window.UBnuxSEOSchema.remove();
-        renderNotFound();
+        if (!hasSSR) renderNotFound();
         return;
       }
 
       if (window.UBnuxSEOSchema) window.UBnuxSEOSchema.set(route, data, title);
-      window.UBnuxSEORenderer.render(route, data);
+
+      // Cloudflare SSR already rendered the exact requested page into the real root.
+      // Never replace that DOM on first load; this removes duplicate content and flicker.
+      if (!hasSSR) window.UBnuxSEORenderer.render(route, data);
     }).catch(function (error) {
       console.error("UBnux SEO bootstrap failed", error);
+      if (hasSSR) return;
       document.title = "UBnux — Local Business Search";
       setMeta("description", "UBnux local business search engine.");
       setMeta("robots", "noindex,follow");
       setCanonical(canonical());
       if (window.UBnuxSEOSchema) window.UBnuxSEOSchema.remove();
-      var root = document.getElementById("ubnux-seo-root");
-      if (root) root.innerHTML = '<section class="ubnux-page-section"><div class="ubnux-container"><h1>UBnux is temporarily unavailable</h1><p class="ubnux-intro">Please try again in a moment.</p></div></section>';
+      var rootNode = document.getElementById("ubnux-seo-root");
+      if (rootNode) rootNode.innerHTML = '<section class="ubnux-page-section"><div class="ubnux-container"><h1>UBnux is temporarily unavailable</h1><p class="ubnux-intro">Please try again in a moment.</p></div></section>';
     });
   }
 
