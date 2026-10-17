@@ -1,6 +1,6 @@
-// UBnux Cloudflare Pages Advanced Mode Worker v3.2.0
+// UBnux Cloudflare Pages Advanced Mode Worker v3.3.0
 // Server-rendered SEO HTML + JSON-LD structured data for /in/... routes.
-// SEO_CONFIG.JSON controls whether test/demo route pages may be indexed.
+// Global category routes use prebuilt category indexes to avoid N district fetches.
 
 const ORIGIN = "https://ubnux.com";
 
@@ -62,6 +62,11 @@ function find(rows,slug,idNames,slugNames) {
 async function districtBusinesses(env,requestUrl,district) {
   const slug=field(district,["District_Slug","districtSlug","slug"]);
   try{return arr(await json(env,requestUrl,"businesses/"+String(slug).toUpperCase()+"_BUSINESS_INDEX.JSON"),["businesses","data","items"]);}catch(_){return [];}
+}
+async function categoryBusinesses(env,requestUrl,category) {
+  const id=field(category,["Category_Id","categoryId","id"]);
+  if(!id) return null;
+  try{return arr(await json(env,requestUrl,"category-index/"+encodeURIComponent(id)+".JSON"),["businesses","data","items"]);}catch(_){return null;}
 }
 function pageTitle(route,data) {
   if(route.type==="state") return `${field(data.state,["State_Title"])} Local Businesses | UBnux`;
@@ -131,7 +136,19 @@ async function resolve(env,requestUrl,route) {
   if(route.categorySlug)data.category=find(ix.categories,route.categorySlug,["Category_Id"],["Category_Slug"]);
   ix.districts.forEach(d=>data.districtMap[field(d,["District_Id"])]=d);
   if(route.type==="home")return data;if(route.type==="state")return data;
-  if(route.type==="category"){if(!data.category)return data;const groups=await Promise.all(ix.districts.map(d=>districtBusinesses(env,requestUrl,d)));const cid=field(data.category,["Category_Id"]);data.businesses=groups.flat().filter(b=>same(field(b,["Category_Id"]),cid));return data;}
+  if(route.type==="category"){
+    if(!data.category)return data;
+    const direct=await categoryBusinesses(env,requestUrl,data.category);
+    if(direct!==null){
+      const cid=field(data.category,["Category_Id"]);
+      data.businesses=direct.filter(b=>same(field(b,["Category_Id"]),cid));
+      return data;
+    }
+    const groups=await Promise.all(ix.districts.map(d=>districtBusinesses(env,requestUrl,d)));
+    const cid=field(data.category,["Category_Id"]);
+    data.businesses=groups.flat().filter(b=>same(field(b,["Category_Id"]),cid));
+    return data;
+  }
   if(!data.state||!data.district)return data;
   if(!same(field(data.district,["State_Id"]),field(data.state,["State_Id"])))return data;
   if((route.type==="district-category"||route.type==="business")&&!data.category)return data;
