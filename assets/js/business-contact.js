@@ -1,10 +1,9 @@
-/* UBnux Business Contact Client v1.4.0 */
+/* UBnux Business Contact Client v1.5.0 */
 (function(window, document){
   'use strict';
 
-  // Same-origin Cloudflare Worker proxy. The Worker talks to Google Apps Script,
-  // so the browser never depends on Apps Script CORS/redirect behaviour.
-  var API_URL = '/api/business-contact';
+  var PROXY_URL = '/api/business-contact';
+  var DIRECT_API_URL = 'https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
   var requestSerial = 0;
 
   function field(row, names){
@@ -45,26 +44,64 @@
     box.removeAttribute('data-contact-unavailable');
   }
 
-  function request(box, businessId, district){
-    var url = API_URL + '?district=' + encodeURIComponent(district) + '&businessId=' + encodeURIComponent(businessId) + '&_=' + (++requestSerial);
-    box.setAttribute('data-contact-loading', 'true');
-    reset(box);
-
+  function proxyRequest(businessId, district){
+    var url = PROXY_URL + '?district=' + encodeURIComponent(district) + '&businessId=' + encodeURIComponent(businessId) + '&_=' + (++requestSerial);
     return fetch(url, {
       method: 'GET',
       cache: 'no-store',
       credentials: 'same-origin',
       headers: { 'Accept': 'application/json' }
-    })
-      .then(function(response){
-        return response.text().then(function(text){
-          var result;
-          try { result = JSON.parse(text); }
-          catch (e) { throw new Error('Contact proxy returned invalid JSON'); }
-          if (!response.ok) throw new Error(result && result.error || ('Contact proxy HTTP ' + response.status));
-          return result;
-        });
-      })
+    }).then(function(response){
+      return response.text().then(function(text){
+        var result;
+        try { result = JSON.parse(text); }
+        catch (e) { throw new Error('Contact proxy returned invalid JSON'); }
+        if (!response.ok) throw new Error(result && result.error || ('Contact proxy HTTP ' + response.status));
+        if (!result || !result.found || !result.phone) throw new Error('Proxy did not return a phone number');
+        return result;
+      });
+    });
+  }
+
+  function jsonpRequest(businessId, district){
+    return new Promise(function(resolve, reject){
+      var callbackName = '__ubnuxContact_' + Date.now() + '_' + (++requestSerial);
+      var script = document.createElement('script');
+      var finished = false;
+      var timer = setTimeout(function(){ finish(new Error('Direct contact lookup timed out')); }, 9000);
+
+      function cleanup(){
+        clearTimeout(timer);
+        try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+      function finish(error, result){
+        if (finished) return;
+        finished = true;
+        cleanup();
+        if (error) reject(error); else resolve(result);
+      }
+
+      window[callbackName] = function(result){
+        if (!result || !result.found || !result.phone) {
+          finish(new Error('Google Sheet contact not found'));
+          return;
+        }
+        finish(null, result);
+      };
+      script.onerror = function(){ finish(new Error('Direct contact lookup failed')); };
+      script.src = DIRECT_API_URL + '?district=' + encodeURIComponent(district) + '&businessId=' + encodeURIComponent(businessId) + '&callback=' + encodeURIComponent(callbackName) + '&_=' + (++requestSerial);
+      script.async = true;
+      document.head.appendChild(script);
+    });
+  }
+
+  function request(box, businessId, district){
+    box.setAttribute('data-contact-loading', 'true');
+    reset(box);
+
+    proxyRequest(businessId, district)
+      .catch(function(){ return jsonpRequest(businessId, district); })
       .then(function(result){ applyResult(box, result); })
       .catch(function(error){
         box.removeAttribute('data-contact-loading');
@@ -95,7 +132,7 @@
   }
 
   window.UBnuxBusinessContact = {
-    version: '1.4.0',
+    version: '1.5.0',
     hydrateBusiness: hydrateBusiness,
     autoHydrate: autoHydrate
   };
