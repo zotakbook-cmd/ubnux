@@ -1,16 +1,17 @@
-/* UBnux Business Contact API v2.0.0
+/* UBnux Business Contact API v2.1.0
  * A = Business ID
  * B = Phone
  * C = Map / Google Maps URL or location text
  * D = Website URL
  * E = Business Description
  *
- * Designed for one-request frontend hydration.
+ * Exact Business ID lookup in the selected district sheet.
+ * One request returns the complete A:E record.
  */
 
 const UBNUX_CONTACT_CONFIG = {
   SPREADSHEET_ID: '1wPp7VT54l_ffu3_hlCnwNIHLRshthkyj77MBvJmxRJY',
-  CACHE_SECONDS: 600,
+  CACHE_SECONDS: 300,
   EMPTY_CACHE_SECONDS: 30
 };
 
@@ -22,13 +23,17 @@ function doGet(e) {
 
   let payload;
   if (!district || !businessId) {
-    payload = { ok:false, found:false, error:'district and businessId are required' };
+    payload = {
+      ok: false,
+      found: false,
+      error: 'district and businessId are required'
+    };
   } else {
     try {
       const record = findBusiness_(district, businessId);
       payload = {
         ok: true,
-        found: !!record.phone,
+        found: !!record.found,
         businessId: businessId,
         district: district,
         phone: record.phone || '',
@@ -37,7 +42,11 @@ function doGet(e) {
         description: record.description || ''
       };
     } catch (err) {
-      payload = { ok:false, found:false, error:String(err && err.message ? err.message : err) };
+      payload = {
+        ok: false,
+        found: false,
+        error: String(err && err.message ? err.message : err)
+      };
     }
   }
 
@@ -46,7 +55,7 @@ function doGet(e) {
 
 function findBusiness_(district, businessId) {
   const cache = CacheService.getScriptCache();
-  const key = 'bc2:' + normalize_(district) + ':' + normalize_(businessId);
+  const key = 'bc3:' + normalize_(district) + ':' + normalize_(businessId);
   const cached = cache.get(key);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) {}
@@ -59,14 +68,16 @@ function findBusiness_(district, businessId) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 1) return cacheEmpty_(cache, key);
 
-  // Read only A:E once. Display values preserve phone numbers as shown in Sheets.
+  // Read A:E once. The first column is the exact Business ID key.
   const values = sheet.getRange(1, 1, lastRow, 5).getDisplayValues();
   const target = normalize_(businessId);
 
   for (let i = 0; i < values.length; i++) {
-    if (normalize_(values[i][0]) !== target) continue;
+    const rowBusinessId = normalize_(values[i][0]);
+    if (!rowBusinessId || rowBusinessId !== target) continue;
 
     const record = {
+      found: true,
       phone: normalizePhone_(values[i][1]),
       map: clean_(values[i][2]),
       website: clean_(values[i][3]),
@@ -76,7 +87,7 @@ function findBusiness_(district, businessId) {
     cache.put(
       key,
       JSON.stringify(record),
-      record.phone ? UBNUX_CONTACT_CONFIG.CACHE_SECONDS : UBNUX_CONTACT_CONFIG.EMPTY_CACHE_SECONDS
+      UBNUX_CONTACT_CONFIG.CACHE_SECONDS
     );
     return record;
   }
@@ -85,7 +96,13 @@ function findBusiness_(district, businessId) {
 }
 
 function cacheEmpty_(cache, key) {
-  const empty = { phone:'', map:'', website:'', description:'' };
+  const empty = {
+    found: false,
+    phone: '',
+    map: '',
+    website: '',
+    description: ''
+  };
   cache.put(key, JSON.stringify(empty), UBNUX_CONTACT_CONFIG.EMPTY_CACHE_SECONDS);
   return empty;
 }
