@@ -13,9 +13,31 @@
   <header class="site-header">
     <div class="ubnux-header-inner">
       <a class="brand" href="/">UBnux</a>
-      <form class="ubnux-header-search" action="/search/" method="get">
-        <input name="q" type="search" placeholder="Search business, category or district..." aria-label="Search UBnux">
-        <button type="submit">Search</button>
+      <form id="ubnux-global-header-form" class="ubnux-global-header-form" action="/search/" method="get">
+        <div class="ubnux-global-header-main">
+          <input id="ubnux-global-header-q" name="q" type="search" placeholder="Search business, category or district..." aria-label="Search UBnux" autocomplete="off">
+          <button type="submit">Search</button>
+        </div>
+        <div class="ubnux-global-header-filters" aria-label="Search filters">
+          <select id="ubnux-global-header-state" name="state" aria-label="State"><option value="">All States</option></select>
+          <select id="ubnux-global-header-district" name="district" aria-label="District"><option value="">All Districts</option></select>
+          <select id="ubnux-global-header-category" name="category" aria-label="Category"><option value="">All Categories</option></select>
+          <select id="ubnux-global-header-rating" name="rating" aria-label="Minimum rating">
+            <option value="">Any Rating</option>
+            <option value="4">4+ Rating</option>
+            <option value="3">3+ Rating</option>
+          </select>
+          <select id="ubnux-global-header-verified" name="verified" aria-label="Business verification">
+            <option value="">All Businesses</option>
+            <option value="true">Verified Only</option>
+          </select>
+          <select id="ubnux-global-header-sort" name="sort" aria-label="Sort results">
+            <option value="relevance">Best Match</option>
+            <option value="rating">Highest Rating</option>
+            <option value="reviews">Most Reviews</option>
+            <option value="name">Name A–Z</option>
+          </select>
+        </div>
       </form>
     </div>
   </header>
@@ -27,6 +49,7 @@
   <script src="/assets/js/seo-renderer.js" defer></script>
   <script src="/assets/js/seo-schema.js" defer></script>
   <script src="/assets/js/seo-app.js" defer></script>
+  <script src="/assets/js/global-search-ui.js" defer></script>
   <script src="/assets/js/global-search.js" defer></script>
 </body>
 </html>
