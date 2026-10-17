@@ -73,43 +73,5 @@
       "smartphone"
     ],
     "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/mobile-shop/tech-mobile-siwan/"
-  },
-  {
-    "Business_Title": "Demo Fashion Store Siwan",
-    "Business_Id": "DEMO-B001",
-    "District_Id": "D001",
-    "Category_Id": "C0001",
-    "Business_Slug": "demo-fashion-store-siwan",
-    "Business_Rating": 4.5,
-    "Business_Review": 12,
-    "Business_Status": "Demo",
-    "Business_Keywords": [
-      "fashion shop",
-      "clothing store",
-      "siwan fashion"
-    ],
-    "Business_Address": "Demo Market, Siwan, Bihar",
-    "Business_Pincode": "841226",
-    "Business_Description": "Demo business record for testing the UBnux SEO import pipeline.",
-    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/fashion/demo-fashion-store-siwan/"
-  },
-  {
-    "Business_Title": "Demo Coaching Institute Siwan",
-    "Business_Id": "DEMO-B004",
-    "District_Id": "D001",
-    "Category_Id": "C0003",
-    "Business_Slug": "demo-coaching-institute-siwan",
-    "Business_Rating": 4.7,
-    "Business_Review": 21,
-    "Business_Status": "Demo",
-    "Business_Keywords": [
-      "coaching institute",
-      "competitive exam coaching",
-      "siwan coaching"
-    ],
-    "Business_Address": "Demo Education Road, Siwan, Bihar",
-    "Business_Pincode": "841226",
-    "Business_Description": "Demo coaching record for testing a second category.",
-    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/coaching-institute/demo-coaching-institute-siwan/"
   }
 ]
