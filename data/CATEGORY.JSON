@@ -1,7 +1,10 @@
-{
-  "Category_Title": "Fashion",
-  "Category_Id": "C0001",
-  "Category_Slug": "fashion",
-  "Category_Keywords": ["Fashion", "clothes"],
-  "Category_Seo_Url": "https://ubnux.com/in/all/fashion/"
-}
+[
+  {"Category_Title":"Fashion","Category_Id":"C0001","Category_Slug":"fashion","Category_Keywords":["Fashion","clothes"],"Category_Seo_Url":"https://ubnux.com/in/all/fashion/"},
+  {"Category_Title":"Education","Category_Id":"C0002","Category_Slug":"education","Category_Keywords":["Education","school","study"],"Category_Seo_Url":"https://ubnux.com/in/all/education/"},
+  {"Category_Title":"Coaching Institute","Category_Id":"C0003","Category_Slug":"coaching-institute","Category_Keywords":["Coaching","coaching institute","classes"],"Category_Seo_Url":"https://ubnux.com/in/all/coaching-institute/"},
+  {"Category_Title":"Restaurant","Category_Id":"C0004","Category_Slug":"restaurant","Category_Keywords":["Restaurant","food","dining"],"Category_Seo_Url":"https://ubnux.com/in/all/restaurant/"},
+  {"Category_Title":"Hotel","Category_Id":"C0005","Category_Slug":"hotel","Category_Keywords":["Hotel","stay","rooms"],"Category_Seo_Url":"https://ubnux.com/in/all/hotel/"},
+  {"Category_Title":"Mobile Shop","Category_Id":"C0006","Category_Slug":"mobile-shop","Category_Keywords":["Mobile Shop","smartphone","mobile"],"Category_Seo_Url":"https://ubnux.com/in/all/mobile-shop/"},
+  {"Category_Title":"Hospital","Category_Id":"C0007","Category_Slug":"hospital","Category_Keywords":["Hospital","clinic","healthcare"],"Category_Seo_Url":"https://ubnux.com/in/all/hospital/"},
+  {"Category_Title":"Safety Training Institute","Category_Id":"C0008","Category_Slug":"safety-training-institute","Category_Keywords":["Safety Training","safety institute","fire safety"],"Category_Seo_Url":"https://ubnux.com/in/all/safety-training-institute/"}
+]
