@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO Renderer v1.1.0 */
+/* UBnux SEO Renderer v1.2.0 */
 (function (window, document) {
   "use strict";
 
@@ -7,36 +7,51 @@
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
+      .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
 
   function field(row, names) {
+    row = row || {};
     for (var i = 0; i < names.length; i++) {
-      if (row && row[names[i]] != null) return row[names[i]];
+      var value = row[names[i]];
+      if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
     }
     return "";
   }
 
   function text(value, fallback) {
-    var v = String(value == null ? "" : value).trim();
-    return v || fallback || "";
+    var valueText = String(value == null ? "" : value).trim();
+    return valueText || fallback || "";
   }
 
   function entityName(row, type) {
-    if (type === "state") return text(field(row, ["State_Title"]), "State");
-    if (type === "district") return text(field(row, ["District_Title"]), "District");
-    if (type === "category") return text(field(row, ["Category_Title"]), "Category");
-    return text(field(row, ["Business_Title"]), "Business");
+    var names = type === "state" ? ["State_Title"] : type === "district" ? ["District_Title"] : type === "category" ? ["Category_Title"] : ["Business_Title"];
+    return text(field(row, names), type === "state" ? "State" : type === "district" ? "District" : type === "category" ? "Category" : "Business");
+  }
+
+  function uniqueBusinesses(list) {
+    var seen = Object.create(null);
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (business) {
+      var key = field(business, ["Business_Id", "Business_Slug", "Business_Seo_Url"]);
+      if (!key) {
+        out.push(business);
+        return;
+      }
+      key = key.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(business);
+    });
+    return out;
   }
 
   function pageHeading(route, data) {
     if (route.type === "state") return entityName(data.state, "state") + " — Local Businesses & Services";
     if (route.type === "district") return entityName(data.district, "district") + " — Local Businesses & Services";
     if (route.type === "category") return entityName(data.category, "category") + " Businesses in India";
-    if (route.type === "district-category") {
-      return entityName(data.category, "category") + " in " + entityName(data.district, "district");
-    }
+    if (route.type === "district-category") return entityName(data.category, "category") + " in " + entityName(data.district, "district");
     if (route.type === "business") return entityName(data.business, "business");
     return "UBnux — Local Business Search";
   }
@@ -50,20 +65,37 @@
     return "UBnux local business search engine for businesses, products and services.";
   }
 
-  function card(business, state, district, category) {
-    var name = entityName(business, "business");
+  function businessUrl(business, data) {
+    var direct = field(business, ["Business_Seo_Url"]);
+    if (direct) return direct;
+
     var slug = field(business, ["Business_Slug", "businessSlug", "slug"]);
+    var district = (data.indexes.districts || []).find(function (item) {
+      return field(item, ["District_Id"]).toLowerCase() === field(business, ["District_Id"]).toLowerCase();
+    });
+    var state = (data.indexes.states || []).find(function (item) {
+      return field(item, ["State_Id"]).toLowerCase() === field(district, ["State_Id"]).toLowerCase();
+    });
+    var category = data.category || (data.indexes.categories || []).find(function (item) {
+      return field(item, ["Category_Id"]).toLowerCase() === field(business, ["Category_Id"]).toLowerCase();
+    });
+
+    if (!slug || !district || !state || !category) return "/";
+    return "/in/" + field(state, ["State_Slug"]) + "/" + field(district, ["District_Slug"]) + "/" + field(category, ["Category_Slug"]) + "/" + slug + "/";
+  }
+
+  function card(business, data) {
+    var name = entityName(business, "business");
     var rating = field(business, ["Business_Rating", "rating"]);
     var reviews = field(business, ["Business_Review", "ReviewCount", "reviewCount"]);
-    var url = field(business, ["Business_Seo_Url"]);
-    if (!url) {
-      url = "/in/" + field(state, ["State_Slug"]) + "/" + field(district, ["District_Slug"]) + "/" + field(category, ["Category_Slug"]) + "/" + slug + "/";
-    }
+    var url = businessUrl(business, data);
+    var meta = entityName(data.category, "category");
+    if (data.district) meta += " · " + entityName(data.district, "district");
 
     return '<article class="ubnux-business-card">' +
       '<a class="ubnux-business-link" href="' + esc(url) + '">' +
       '<h3>' + esc(name) + '</h3>' +
-      '<p class="ubnux-meta">' + esc(entityName(category, "category")) + ' · ' + esc(entityName(district, "district")) + '</p>' +
+      '<p class="ubnux-meta">' + esc(meta) + '</p>' +
       (rating !== "" ? '<p class="ubnux-rating">★ ' + esc(rating) + (reviews !== "" ? ' (' + esc(reviews) + ' reviews)' : '') + '</p>' : '') +
       '<span class="ubnux-view">View business →</span>' +
       '</a></article>';
@@ -86,66 +118,55 @@
     var start = Math.max(1, page - 2);
     var end = Math.min(pageCount, page + 2);
     var html = '<nav class="ubnux-pagination" aria-label="Pagination">';
-
     if (page > 1) html += '<a class="ubnux-page-link" rel="prev" href="' + esc(pageHref(route, page - 1)) + '">← Previous</a>';
     if (start > 1) {
       html += '<a class="ubnux-page-link" href="' + esc(pageHref(route, 1)) + '">1</a>';
       if (start > 2) html += '<span class="ubnux-page-gap">…</span>';
     }
     for (var n = start; n <= end; n++) {
-      if (n === page) html += '<span class="ubnux-page-link is-current" aria-current="page">' + n + '</span>';
-      else html += '<a class="ubnux-page-link" href="' + esc(pageHref(route, n)) + '">' + n + '</a>';
+      html += n === page
+        ? '<span class="ubnux-page-link is-current" aria-current="page">' + n + '</span>'
+        : '<a class="ubnux-page-link" href="' + esc(pageHref(route, n)) + '">' + n + '</a>';
     }
     if (end < pageCount) {
       if (end < pageCount - 1) html += '<span class="ubnux-page-gap">…</span>';
       html += '<a class="ubnux-page-link" href="' + esc(pageHref(route, pageCount)) + '">' + pageCount + '</a>';
     }
     if (page < pageCount) html += '<a class="ubnux-page-link" rel="next" href="' + esc(pageHref(route, page + 1)) + '">Next →</a>';
-
     return html + '</nav>';
   }
 
   function renderList(route, data) {
     var title = pageHeading(route, data);
-    var list = data.businesses || [];
-    var category = data.category;
-    var district = data.district;
-    var state = data.state;
-
-    if (route.type === "category") {
-      return '<section class="ubnux-page-section"><div class="ubnux-container">' +
-        '<p class="ubnux-eyebrow">CATEGORY</p><h1>' + esc(title) + '</h1>' +
-        '<p class="ubnux-intro">' + esc(description(route, data)) + '</p>' +
-        '<div class="ubnux-result-count">' + Number(data.businessTotal || 0) + ' business' + (Number(data.businessTotal || 0) === 1 ? '' : 'es') + ' found</div>' +
-        '<div class="ubnux-business-grid">' + list.map(function (b) {
-          var d = (data.indexes.districts || []).find(function (item) {
-            return String(field(item, ["District_Id"])).toLowerCase() === String(field(b, ["District_Id"])).toLowerCase();
-          }) || {};
-          return card(b, state, d, category);
-        }).join("") + '</div>' + pagination(route, data) + '</div></section>';
-    }
+    var list = uniqueBusinesses(data.businesses);
+    var total = Number(data.businessTotal || 0);
+    var countText = total + " business" + (total === 1 ? "" : "es") + " found";
 
     return '<section class="ubnux-page-section"><div class="ubnux-container">' +
-      '<p class="ubnux-eyebrow">LOCAL SEARCH</p><h1>' + esc(title) + '</h1>' +
+      '<p class="ubnux-eyebrow">' + (route.type === "category" ? "CATEGORY" : "LOCAL SEARCH") + '</p>' +
+      '<h1>' + esc(title) + '</h1>' +
       '<p class="ubnux-intro">' + esc(description(route, data)) + '</p>' +
-      '<div class="ubnux-result-count">' + Number(data.businessTotal || list.length) + ' business' + (Number(data.businessTotal || list.length) === 1 ? '' : 'es') + ' found</div>' +
-      (list.length ? '<div class="ubnux-business-grid">' + list.map(function (b) { return card(b, state, district, category); }).join("") + '</div>' : '<div class="ubnux-empty">No matching businesses are available yet.</div>') +
-      pagination(route, data) + '</div></section>';
+      '<div class="ubnux-result-count">' + countText + '</div>' +
+      (list.length
+        ? '<div class="ubnux-business-grid">' + list.map(function (business) { return card(business, data); }).join("") + '</div>'
+        : '<div class="ubnux-empty">No matching businesses are available yet.</div>') +
+      pagination(route, data) +
+      '</div></section>';
   }
 
-  function renderBusiness(route, data) {
-    var b = data.business;
-    if (!b) return '<section class="ubnux-page-section"><div class="ubnux-container"><h1>Business not found</h1><p class="ubnux-intro">The requested business could not be matched to the current JSON data.</p></div></section>';
-    var name = entityName(b, "business");
-    var rating = field(b, ["Business_Rating"]);
-    var reviews = field(b, ["Business_Review"]);
+  function renderBusiness(data) {
+    var business = data.business;
+    if (!business) return '<section class="ubnux-page-section"><div class="ubnux-container"><h1>Business not found</h1><p class="ubnux-intro">The requested business could not be matched to the current JSON data.</p></div></section>';
+    var rating = field(business, ["Business_Rating"]);
+    var reviews = field(business, ["Business_Review", "Business_Review_Count"]);
     return '<section class="ubnux-page-section"><div class="ubnux-container ubnux-business-detail">' +
-      '<p class="ubnux-eyebrow">VERIFIED LOCAL BUSINESS</p><h1>' + esc(name) + '</h1>' +
+      '<p class="ubnux-eyebrow">VERIFIED LOCAL BUSINESS</p>' +
+      '<h1>' + esc(entityName(business, "business")) + '</h1>' +
       '<p class="ubnux-intro">' + esc(entityName(data.category, "category")) + ' in ' + esc(entityName(data.district, "district")) + '</p>' +
       '<div class="ubnux-detail-card">' +
       (rating !== "" ? '<div><strong>Rating</strong><span>★ ' + esc(rating) + (reviews !== "" ? ' · ' + esc(reviews) + ' reviews' : '') + '</span></div>' : '') +
-      '<div><strong>Status</strong><span>' + esc(text(field(b, ["Business_Status"]), "Listed")) + '</span></div>' +
-      '<div><strong>Business ID</strong><span>' + esc(field(b, ["Business_Id"])) + '</span></div>' +
+      '<div><strong>Status</strong><span>' + esc(text(field(business, ["Business_Status"]), "Listed")) + '</span></div>' +
+      '<div><strong>Business ID</strong><span>' + esc(field(business, ["Business_Id"])) + '</span></div>' +
       '</div></div></section>';
   }
 
@@ -156,16 +177,9 @@
       root.innerHTML = '<section class="ubnux-home"><div class="ubnux-container"><p class="ubnux-eyebrow">LOCAL SEARCH ENGINE</p><h1>Find businesses, products and services.</h1><p class="ubnux-intro">Search UBnux by state, district, category or business.</p></div></section>';
       return;
     }
-    if (!data.state && route.type === "state") {
-      root.innerHTML = '<section class="ubnux-page-section"><div class="ubnux-container"><h1>State not found</h1></div></section>';
-      return;
-    }
-    if (route.type === "business") root.innerHTML = renderBusiness(route, data);
+    if (route.type === "business") root.innerHTML = renderBusiness(data);
     else root.innerHTML = renderList(route, data);
   }
 
-  window.UBnuxSEORenderer = {
-    version: "1.1.0",
-    render: render
-  };
+  window.UBnuxSEORenderer = { version: "1.2.0", render: render };
 })(window, document);
