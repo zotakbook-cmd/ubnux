@@ -30,18 +30,15 @@ jobs:
       - name: Import business data
         run: node scripts/import-businesses.js
 
-      - name: Validate SEO relationships
-        run: node scripts/validate-seo.js
-
       - name: Generate sitemap
         run: node scripts/generate-sitemap.js
 
-      - name: Validate generated sitemap
+      - name: Validate SEO relationships and generated sitemap
         run: node scripts/validate-seo.js
 
       - name: Commit generated business indexes and sitemap
         run: |
-          if git diff --quiet; then
+          if git diff --quiet -- data/businesses sitemap.xml; then
             echo "No generated changes."
             exit 0
           fi
