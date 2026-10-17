@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO App v1.2.2 */
+/* UBnux SEO App v1.3.0 */
 (function (window, document) {
   "use strict";
 
@@ -27,7 +27,8 @@
   function field(row, names) {
     row = row || {};
     for (var i = 0; i < names.length; i++) {
-      if (row[names[i]] !== undefined && row[names[i]] !== null && String(row[names[i]]).trim() !== "") return String(row[names[i]]).trim();
+      var value = row[names[i]];
+      if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
     }
     return "";
   }
@@ -78,10 +79,16 @@
     root.innerHTML = '<section class="ubnux-page-section"><div class="ubnux-container"><p class="ubnux-eyebrow">404</p><h1>Page not found</h1><p class="ubnux-intro">The requested UBnux page does not exist.</p><p><a class="ubnux-link" href="/">Go to UBnux home</a></p></div></section>';
   }
 
-  function start() {
-    var ssr = document.getElementById("ubnux-seo-ssr");
-    if (ssr) ssr.remove();
+  function handoffSSR() {
+    var marker = document.getElementById("ubnux-seo-ssr");
+    var root = document.getElementById("ubnux-seo-root");
+    if (!marker || !root) return;
+    root.innerHTML = marker.innerHTML;
+    marker.remove();
+  }
 
+  function start() {
+    handoffSSR();
     var route = window.UBnuxSEORouter.parse(window.location.pathname, window.location.search);
 
     if (route.type === "not-found") {
