@@ -44,3 +44,5 @@ jobs:
           git add data/SEO_INDEX.JSON data/category-index data/district-index data/search-index
           git commit -m "chore: rebuild exact SEO and global search indexes [skip ci]"
           git push origin main
+
+# Keep this workflow path-triggered so business-data changes always rebuild SEO indexes.
