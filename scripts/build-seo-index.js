@@ -21,15 +21,9 @@ function field(row, names) {
 }
 function compact(b) {
   return {
-    Business_Title: field(b, ['Business_Title']),
-    Category_Id: field(b, ['Category_Id']),
-    District_Id: field(b, ['District_Id']),
-    Business_Id: field(b, ['Business_Id']),
-    Business_Slug: field(b, ['Business_Slug']),
-    Business_Rating: b.Business_Rating ?? 0,
-    Business_Review: b.Business_Review ?? 0,
-    Business_Status: field(b, ['Business_Status']),
-    Business_Seo_Url: field(b, ['Business_Seo_Url'])
+    Business_Title: field(b, ['Business_Title']), Category_Id: field(b, ['Category_Id']), District_Id: field(b, ['District_Id']),
+    Business_Id: field(b, ['Business_Id']), Business_Slug: field(b, ['Business_Slug']), Business_Rating: b.Business_Rating ?? 0,
+    Business_Review: b.Business_Review ?? 0, Business_Status: field(b, ['Business_Status']), Business_Seo_Url: field(b, ['Business_Seo_Url'])
   };
 }
 
@@ -44,19 +38,18 @@ fs.mkdirSync(CATEGORY_OUT, { recursive: true });
 fs.mkdirSync(DISTRICT_OUT, { recursive: true });
 
 const districtById = new Map(districts.map(d => [field(d, ['District_Id']), d]));
-const categoryById = new Map(categories.map(c => [field(c, ['Category_Id']), c]));
-const districtMeta = new Map();
 const grouped = new Map(categories.map(c => [field(c, ['Category_Id']), []]));
+const districtMeta = new Map();
 
 for (const file of files) {
   const rows = arr(readJson(path.join(BUSINESS_DIR, file)), ['businesses','data','items']);
   const did = field(rows[0], ['District_Id']);
   if (!did || !districtById.has(did)) continue;
-
   const dir = path.join(DISTRICT_OUT, did);
   fs.mkdirSync(dir, { recursive: true });
   const shards = [];
   const slugToShard = {};
+  const categoryCounts = {};
 
   for (let i = 0; i < rows.length; i += SHARD_SIZE) {
     const n = String(Math.floor(i / SHARD_SIZE) + 1).padStart(4, '0');
@@ -67,15 +60,17 @@ for (const file of files) {
       const slug = field(b, ['Business_Slug']);
       if (slug) slugToShard[slug.toLowerCase()] = name;
       const cid = field(b, ['Category_Id']);
+      if (cid) categoryCounts[cid] = (categoryCounts[cid] || 0) + 1;
       if (grouped.has(cid)) grouped.get(cid).push(compact(b));
     }
     shards.push({ file: `${did}/${name}`, from: i, to: i + slice.length, count: slice.length });
   }
 
   fs.writeFileSync(path.join(dir, 'INDEX.JSON'), JSON.stringify({
-    Version: '1.0.0', District_Id: did, Count: rows.length, Page_Size: SHARD_SIZE, Shards: shards, Business_Slug_To_Shard: slugToShard
+    Version: '1.0.0', District_Id: did, Count: rows.length, Page_Size: SHARD_SIZE, Category_Counts: categoryCounts,
+    Shards: shards, Business_Slug_To_Shard: slugToShard
   }), 'utf8');
-  districtMeta.set(did, { File: `district-index/${did}/0001.JSON`, Index: `district-index/${did}/INDEX.JSON`, Count: rows.length, Page_Size: SHARD_SIZE, Shards: shards });
+  districtMeta.set(did, { Index: `district-index/${did}/INDEX.JSON`, Count: rows.length, Page_Size: SHARD_SIZE, Category_Counts: categoryCounts, Shards: shards });
 }
 
 const categoryFiles = {};
@@ -101,16 +96,10 @@ for (const c of categories) {
 }
 
 const index = {
-  Version: '3.0.0',
-  GeneratedAt: new Date().toISOString(),
-  Shard_Size: SHARD_SIZE,
+  Version: '3.1.0', GeneratedAt: new Date().toISOString(), Shard_Size: SHARD_SIZE,
   States: states,
-  Districts: districts.map(d => {
-    const id = field(d, ['District_Id']);
-    return { ...d, ...(districtMeta.get(id) || { Count: 0, Shards: [] }) };
-  }),
-  Categories: categories,
-  Category_Files: categoryFiles
+  Districts: districts.map(d => { const id = field(d, ['District_Id']); return { ...d, ...(districtMeta.get(id) || { Count: 0, Category_Counts: {}, Shards: [] }) }; }),
+  Categories: categories, Category_Files: categoryFiles
 };
 fs.writeFileSync(SEO_INDEX, JSON.stringify(index), 'utf8');
 console.log(`Built exact SEO index: ${states.length} states, ${districts.length} districts, ${categories.length} categories, ${files.length} district source files.`);
