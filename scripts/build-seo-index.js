@@ -4,7 +4,8 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const DATA = path.join(ROOT, 'data');
 const BUSINESS_DIR = path.join(DATA, 'businesses');
-const OUT_DIR = path.join(DATA, 'category-index');
+const CATEGORY_OUT = path.join(DATA, 'category-index');
+const DISTRICT_OUT = path.join(DATA, 'district-index');
 const SEO_INDEX = path.join(DATA, 'SEO_INDEX.JSON');
 const SHARD_SIZE = 1000;
 
@@ -37,62 +38,79 @@ const districts = arr(readJson(path.join(DATA, 'DISTRICT.JSON')), ['districts','
 const categories = arr(readJson(path.join(DATA, 'CATEGORY.JSON')), ['categories','data','items']);
 const files = fs.readdirSync(BUSINESS_DIR).filter(f => /_BUSINESS_INDEX\.JSON$/i.test(f)).sort();
 
-const districtFiles = {};
-for (const d of districts) {
-  const id = field(d, ['District_Id']);
-  const slug = field(d, ['District_Slug']);
-  const filename = `${slug.toUpperCase()}_BUSINESS_INDEX.JSON`;
-  const actual = files.find(f => f.toLowerCase() === filename.toLowerCase());
-  districtFiles[id] = actual ? `businesses/${actual}` : null;
-}
+fs.rmSync(CATEGORY_OUT, { recursive: true, force: true });
+fs.rmSync(DISTRICT_OUT, { recursive: true, force: true });
+fs.mkdirSync(CATEGORY_OUT, { recursive: true });
+fs.mkdirSync(DISTRICT_OUT, { recursive: true });
 
+const districtById = new Map(districts.map(d => [field(d, ['District_Id']), d]));
+const categoryById = new Map(categories.map(c => [field(c, ['Category_Id']), c]));
+const districtMeta = new Map();
 const grouped = new Map(categories.map(c => [field(c, ['Category_Id']), []]));
+
 for (const file of files) {
   const rows = arr(readJson(path.join(BUSINESS_DIR, file)), ['businesses','data','items']);
-  for (const b of rows) {
-    const cid = field(b, ['Category_Id']);
-    if (grouped.has(cid)) grouped.get(cid).push(compact(b));
-  }
-}
+  const did = field(rows[0], ['District_Id']);
+  if (!did || !districtById.has(did)) continue;
 
-fs.rmSync(OUT_DIR, { recursive: true, force: true });
-fs.mkdirSync(OUT_DIR, { recursive: true });
+  const dir = path.join(DISTRICT_OUT, did);
+  fs.mkdirSync(dir, { recursive: true });
+  const shards = [];
+  const slugToShard = {};
+
+  for (let i = 0; i < rows.length; i += SHARD_SIZE) {
+    const n = String(Math.floor(i / SHARD_SIZE) + 1).padStart(4, '0');
+    const name = `${n}.JSON`;
+    const slice = rows.slice(i, i + SHARD_SIZE);
+    fs.writeFileSync(path.join(dir, name), JSON.stringify(slice), 'utf8');
+    for (const b of slice) {
+      const slug = field(b, ['Business_Slug']);
+      if (slug) slugToShard[slug.toLowerCase()] = name;
+      const cid = field(b, ['Category_Id']);
+      if (grouped.has(cid)) grouped.get(cid).push(compact(b));
+    }
+    shards.push({ file: `${did}/${name}`, from: i, to: i + slice.length, count: slice.length });
+  }
+
+  fs.writeFileSync(path.join(dir, 'INDEX.JSON'), JSON.stringify({
+    Version: '1.0.0', District_Id: did, Count: rows.length, Page_Size: SHARD_SIZE, Shards: shards, Business_Slug_To_Shard: slugToShard
+  }), 'utf8');
+  districtMeta.set(did, { File: `district-index/${did}/0001.JSON`, Index: `district-index/${did}/INDEX.JSON`, Count: rows.length, Page_Size: SHARD_SIZE, Shards: shards });
+}
 
 const categoryFiles = {};
 for (const c of categories) {
   const id = field(c, ['Category_Id']);
   const rows = grouped.get(id) || [];
   rows.sort((a,b) => String(a.Business_Title).localeCompare(String(b.Business_Title)));
-  const dir = path.join(OUT_DIR, id);
+  const dir = path.join(CATEGORY_OUT, id);
   fs.mkdirSync(dir, { recursive: true });
   const shards = [];
   for (let i = 0; i < rows.length; i += SHARD_SIZE) {
     const n = String(Math.floor(i / SHARD_SIZE) + 1).padStart(4, '0');
     const name = `${n}.JSON`;
-    fs.writeFileSync(path.join(dir, name), JSON.stringify(rows.slice(i, i + SHARD_SIZE)), 'utf8');
-    shards.push({ file: `${id}/${name}`, from: i, to: Math.min(i + SHARD_SIZE, rows.length), count: Math.min(SHARD_SIZE, rows.length - i) });
+    const slice = rows.slice(i, i + SHARD_SIZE);
+    fs.writeFileSync(path.join(dir, name), JSON.stringify(slice), 'utf8');
+    shards.push({ file: `${id}/${name}`, from: i, to: i + slice.length, count: slice.length });
   }
   if (!shards.length) {
     fs.writeFileSync(path.join(dir, '0001.JSON'), '[]', 'utf8');
     shards.push({ file: `${id}/0001.JSON`, from: 0, to: 0, count: 0 });
   }
-  categoryFiles[id] = {
-    Category_Id: id,
-    Category_Slug: field(c, ['Category_Slug']),
-    Count: rows.length,
-    Page_Size: SHARD_SIZE,
-    Shards: shards
-  };
+  categoryFiles[id] = { Category_Id: id, Category_Slug: field(c, ['Category_Slug']), Count: rows.length, Page_Size: SHARD_SIZE, Shards: shards };
 }
 
 const index = {
-  Version: '2.0.0',
+  Version: '3.0.0',
   GeneratedAt: new Date().toISOString(),
-  Category_Shard_Size: SHARD_SIZE,
+  Shard_Size: SHARD_SIZE,
   States: states,
-  Districts: districts.map(d => ({ ...d, Business_File: districtFiles[field(d, ['District_Id'])] })),
+  Districts: districts.map(d => {
+    const id = field(d, ['District_Id']);
+    return { ...d, ...(districtMeta.get(id) || { Count: 0, Shards: [] }) };
+  }),
   Categories: categories,
   Category_Files: categoryFiles
 };
 fs.writeFileSync(SEO_INDEX, JSON.stringify(index), 'utf8');
-console.log(`Built SEO_INDEX for ${states.length} states, ${districts.length} districts, ${categories.length} categories from ${files.length} district business files.`);
+console.log(`Built exact SEO index: ${states.length} states, ${districts.length} districts, ${categories.length} categories, ${files.length} district source files.`);
