@@ -1,4 +1,4 @@
-/* UBnux Fresh SEO Renderer v1.0.0 */
+/* UBnux Fresh SEO Renderer v1.1.0 */
 (function (window, document) {
   "use strict";
 
@@ -69,6 +69,42 @@
       '</a></article>';
   }
 
+  function pageHref(route, page) {
+    var path = "/";
+    if (route.type === "category") path = "/in/all/" + route.categorySlug + "/";
+    else if (route.type === "district") path = "/in/" + route.stateSlug + "/" + route.districtSlug + "/";
+    else if (route.type === "district-category") path = "/in/" + route.stateSlug + "/" + route.districtSlug + "/" + route.categorySlug + "/";
+    return page <= 1 ? path : path + "?page=" + page;
+  }
+
+  function pagination(route, data) {
+    if (route.type === "business") return "";
+    var page = Math.max(1, Number(data.page || route.page || 1));
+    var pageCount = Math.max(1, Number(data.pageCount || 1));
+    if (pageCount <= 1) return "";
+
+    var start = Math.max(1, page - 2);
+    var end = Math.min(pageCount, page + 2);
+    var html = '<nav class="ubnux-pagination" aria-label="Pagination">';
+
+    if (page > 1) html += '<a class="ubnux-page-link" rel="prev" href="' + esc(pageHref(route, page - 1)) + '">← Previous</a>';
+    if (start > 1) {
+      html += '<a class="ubnux-page-link" href="' + esc(pageHref(route, 1)) + '">1</a>';
+      if (start > 2) html += '<span class="ubnux-page-gap">…</span>';
+    }
+    for (var n = start; n <= end; n++) {
+      if (n === page) html += '<span class="ubnux-page-link is-current" aria-current="page">' + n + '</span>';
+      else html += '<a class="ubnux-page-link" href="' + esc(pageHref(route, n)) + '">' + n + '</a>';
+    }
+    if (end < pageCount) {
+      if (end < pageCount - 1) html += '<span class="ubnux-page-gap">…</span>';
+      html += '<a class="ubnux-page-link" href="' + esc(pageHref(route, pageCount)) + '">' + pageCount + '</a>';
+    }
+    if (page < pageCount) html += '<a class="ubnux-page-link" rel="next" href="' + esc(pageHref(route, page + 1)) + '">Next →</a>';
+
+    return html + '</nav>';
+  }
+
   function renderList(route, data) {
     var title = pageHeading(route, data);
     var list = data.businesses || [];
@@ -80,20 +116,21 @@
       return '<section class="ubnux-page-section"><div class="ubnux-container">' +
         '<p class="ubnux-eyebrow">CATEGORY</p><h1>' + esc(title) + '</h1>' +
         '<p class="ubnux-intro">' + esc(description(route, data)) + '</p>' +
-        '<div class="ubnux-result-count">' + list.length + ' business' + (list.length === 1 ? '' : 'es') + ' found</div>' +
+        '<div class="ubnux-result-count">' + Number(data.businessTotal || 0) + ' business' + (Number(data.businessTotal || 0) === 1 ? '' : 'es') + ' found</div>' +
         '<div class="ubnux-business-grid">' + list.map(function (b) {
           var d = (data.indexes.districts || []).find(function (item) {
             return String(field(item, ["District_Id"])).toLowerCase() === String(field(b, ["District_Id"])).toLowerCase();
           }) || {};
           return card(b, state, d, category);
-        }).join("") + '</div></div></section>';
+        }).join("") + '</div>' + pagination(route, data) + '</div></section>';
     }
 
     return '<section class="ubnux-page-section"><div class="ubnux-container">' +
       '<p class="ubnux-eyebrow">LOCAL SEARCH</p><h1>' + esc(title) + '</h1>' +
       '<p class="ubnux-intro">' + esc(description(route, data)) + '</p>' +
-      (list.length ? '<div class="ubnux-result-count">' + list.length + ' business' + (list.length === 1 ? '' : 'es') + ' found</div><div class="ubnux-business-grid">' + list.map(function (b) { return card(b, state, district, category); }).join("") + '</div>' : '<div class="ubnux-empty">No matching businesses are available yet.</div>') +
-      '</div></section>';
+      '<div class="ubnux-result-count">' + Number(data.businessTotal || list.length) + ' business' + (Number(data.businessTotal || list.length) === 1 ? '' : 'es') + ' found</div>' +
+      (list.length ? '<div class="ubnux-business-grid">' + list.map(function (b) { return card(b, state, district, category); }).join("") + '</div>' : '<div class="ubnux-empty">No matching businesses are available yet.</div>') +
+      pagination(route, data) + '</div></section>';
   }
 
   function renderBusiness(route, data) {
@@ -128,7 +165,7 @@
   }
 
   window.UBnuxSEORenderer = {
-    version: "1.0.0",
+    version: "1.1.0",
     render: render
   };
 })(window, document);
