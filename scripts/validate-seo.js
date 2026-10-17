@@ -21,6 +21,8 @@ function url(value) {
   return /^https?:\/\//i.test(v) ? v.replace(/\/+$/, '/') : `${BASE}/${v.replace(/^\/+/, '').replace(/\/+$/, '')}/`;
 }
 
+const seoConfig = read(path.join(DATA, 'SEO_CONFIG.JSON'));
+const indexingEnabled = seoConfig.Indexing_Enabled === true;
 const states = arr(read(path.join(DATA, 'STATE.JSON')));
 const districts = arr(read(path.join(DATA, 'DISTRICT.JSON')));
 const categories = arr(read(path.join(DATA, 'CATEGORY.JSON')));
@@ -71,13 +73,13 @@ for (const key of districtCategory) {
   addUrl(`/in/${state.State_Slug}/${district.District_Slug}/${category.Category_Slug}/`, `District/category ${key}`);
 }
 
-const sitemap = read(path.join(ROOT, 'sitemap.xml').replace(/\.xml$/, '.xml'));
 const sitemapText = fs.readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8');
 const sitemapUrls = [...sitemapText.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1]);
 for (const u of sitemapUrls) {
   if (!u.endsWith('/')) throw new Error(`Sitemap URL missing trailing slash: ${u}`);
   if (!u.startsWith(BASE + '/')) throw new Error(`Sitemap contains non-production URL: ${u}`);
+  if (!indexingEnabled && u !== `${BASE}/`) throw new Error(`Testing mode sitemap must not expose indexable test URL: ${u}`);
 }
 
 console.log(`SEO validation passed: ${states.length} states, ${districts.length} districts, ${categories.length} categories, ${businessCount} businesses, ${urls.size} generated entity URLs.`);
-console.log(`Sitemap contains ${sitemapUrls.length} URLs.`);
+console.log(`Sitemap contains ${sitemapUrls.length} URLs. Indexing enabled: ${indexingEnabled}.`);
