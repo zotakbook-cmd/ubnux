@@ -1,0 +1,15 @@
+{
+  "Business_Title": "Business Name",
+  "Category_Id": "C0001",
+  "District_Id": "D001",
+  "Business_Id": "B00001",
+  "Business_Slug": "business-name",
+  "Business_Rating": 0,
+  "Business_Review": 0,
+  "Business_Status": "Verified",
+  "Business_Keywords": [
+    "business keyword",
+    "local search keyword"
+  ],
+  "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/fashion/business-name/"
+}
