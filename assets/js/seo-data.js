@@ -1,238 +1,30 @@
-/* UBnux SEO Data Resolver v2.3.0 */
+/* UBnux SEO Data Resolver v2.4.0 */
 (function (window) {
   "use strict";
-
-  var BASE = "/data/";
-  var cache = Object.create(null);
-
-  function norm(value) {
-    return String(value == null ? "" : value).trim().toLowerCase();
+  var BASE = "/data/", PAGE_SIZE = 24, cache = Object.create(null);
+  function norm(value){return String(value==null?"":value).trim().toLowerCase();}
+  function field(row,names){row=row||{};for(var i=0;i<names.length;i++){var v=row[names[i]];if(v!==undefined&&v!==null&&String(v).trim()!=="")return String(v).trim();}return "";}
+  function arrayOf(data,keys){if(Array.isArray(data))return data;for(var i=0;i<keys.length;i++)if(Array.isArray(data&&data[keys[i]]))return data[keys[i]];return []}
+  function json(path){if(!cache[path])cache[path]=fetch(BASE+path,{cache:"default"}).then(function(r){if(!r.ok)throw new Error("Data request failed: "+path);return r.json();});return cache[path];}
+  function find(rows,value,idNames,slugNames){var target=norm(value);return(rows||[]).find(function(row){return norm(field(row,idNames))===target||norm(field(row,slugNames))===target;})||null;}
+  function dedupe(rows){var seen=Object.create(null);return(Array.isArray(rows)?rows:[]).filter(function(row){var key=field(row,["Business_Id","Business_Slug","Business_Seo_Url"]);if(!key)return true;key=norm(key);if(seen[key])return false;seen[key]=true;return true;});}
+  function pageNumber(route){var v=Number(route&&route.page);return isFinite(v)&&v>0?Math.floor(v):1;}
+  function loadIndexes(){return json("SEO_INDEX.JSON").then(function(data){return{states:arrayOf(data,["States"]),districts:arrayOf(data,["Districts"]),categories:arrayOf(data,["Categories"]),categoryFiles:data&&data.Category_Files?data.Category_Files:{},raw:data};});}
+  function loadDistrictIndex(district){var path=field(district,["Index"]);if(!path)return Promise.reject(new Error("District index is missing"));return json(path);}
+  function loadDistrictShard(district,shardFile){var id=field(district,["District_Id"]),file=String(shardFile||"").split("/").pop();return json("district-index/"+encodeURIComponent(id)+"/"+file).then(function(data){return dedupe(arrayOf(data,["businesses","data","items"]));});}
+  function loadCategoryShard(shardFile){return json("category-index/"+String(shardFile||"").split("/").pop()).then(function(data){return dedupe(arrayOf(data,["businesses","data","items"]));});}
+  function slicePaged(loadShardFn,shards,page,total,filterFn){var number=Math.max(1,Number(page)||1),start=(number-1)*PAGE_SIZE,end=Math.min(start+PAGE_SIZE,Math.max(0,total)),first=Math.floor(start/1000),last=Math.floor(Math.max(start,end-1)/1000),jobs=[];for(var i=first;i<=last&&i<shards.length;i++)jobs.push(loadShardFn(shards[i]));return Promise.all(jobs).then(function(chunks){var rows=dedupe([].concat.apply([],chunks));if(filterFn)rows=rows.filter(filterFn);var offset=start-(first*1000);return rows.slice(Math.max(0,offset),Math.max(0,offset+(end-start)));});}
+  function loadDistrictBusinesses(district,page){return loadDistrictIndex(district).then(function(meta){return slicePaged(function(file){return loadDistrictShard(district,file.file);},meta.Shards||[],page,Number(meta.Count||0));});}
+  function loadBusiness(district,businessSlug){return loadDistrictIndex(district).then(function(meta){var map=meta.Business_Slug_To_Shard||{},file=map[norm(businessSlug)];if(!file)return null;return loadDistrictShard(district,file).then(function(rows){return rows.find(function(b){return norm(field(b,["Business_Slug","businessSlug","slug"]))===norm(businessSlug);})||null;});});}
+  function loadCategoryBusinesses(category,page){var cid=field(category,["Category_Id"]);return loadIndexes().then(function(ix){var meta=ix.categoryFiles[cid]||{},total=Number(meta.Count||0);return slicePaged(loadCategoryShard,meta.Shards||[],page,total);});}
+  function loadDistrictCategoryBusinesses(district,category,page){var cid=field(category,["Category_Id"]);return loadDistrictIndex(district).then(function(meta){var files=meta.Category_Shard_Map&&meta.Category_Shard_Map[cid]||[],total=Number((meta.Category_Counts||{})[cid]||0);return slicePaged(function(file){return loadDistrictShard(district,file);},files,page,total,function(b){return norm(field(b,["Category_Id"]))===norm(cid);});});}
+  function resolve(route){return loadIndexes().then(function(indexes){var data={route:route,indexes:indexes,state:null,district:null,category:null,business:null,businesses:[],businessTotal:0,page:pageNumber(route),pageCount:0,hasNext:false,errors:[]};if(route.stateSlug)data.state=find(indexes.states,route.stateSlug,["State_Id"],["State_Slug"]);if(route.districtSlug)data.district=find(indexes.districts,route.districtSlug,["District_Id"],["District_Slug"]);if(route.categorySlug)data.category=find(indexes.categories,route.categorySlug,["Category_Id"],["Category_Slug"]);
+    if(route.type==="home")return data;if(route.type==="state"){if(!data.state)data.errors.push("State not found");return data;}
+    if(route.type==="category"){if(!data.category){data.errors.push("Category not found");return data;}var cm=indexes.categoryFiles[field(data.category,["Category_Id"])]||{};data.businessTotal=Number(cm.Count||0);data.pageCount=Math.max(1,Math.ceil(data.businessTotal/PAGE_SIZE));data.page=Math.min(data.page,data.pageCount);return loadCategoryBusinesses(data.category,data.page).then(function(rows){data.businesses=rows;data.hasNext=data.page<data.pageCount;return data;});}
+    if(!data.state)data.errors.push("State not found");if(!data.district)data.errors.push("District not found");if(!data.state||!data.district)return data;if(norm(field(data.state,["State_Id"]))!==norm(field(data.district,["State_Id"])))data.errors.push("District does not belong to state");if(data.errors.length)return data;
+    if(route.type==="business"||route.type==="district-category"){if(!data.category)data.errors.push("Category not found");if(data.errors.length)return data;}
+    if(route.type==="business")return loadBusiness(data.district,route.businessSlug).then(function(b){data.business=b;data.businesses=b?[b]:[];if(!b)data.errors.push("Business not found");return data;});
+    return loadDistrictIndex(data.district).then(function(meta){if(route.type==="district"){data.businessTotal=Number(meta.Count||0);data.pageCount=Math.max(1,Math.ceil(data.businessTotal/PAGE_SIZE));data.page=Math.min(data.page,data.pageCount);return loadDistrictBusinesses(data.district,data.page).then(function(rows){data.businesses=rows;data.hasNext=data.page<data.pageCount;return data;});}var cid=field(data.category,["Category_Id"]),files=meta.Category_Shard_Map&&meta.Category_Shard_Map[cid]||[];data.businessTotal=Number((meta.Category_Counts||{})[cid]||0);data.pageCount=Math.max(1,Math.ceil(data.businessTotal/PAGE_SIZE));data.page=Math.min(data.page,data.pageCount);return loadDistrictCategoryBusinesses(data.district,data.category,data.page).then(function(rows){data.businesses=dedupe(rows);data.hasNext=data.page<data.pageCount;return data;});});
   }
-
-  function field(row, names) {
-    row = row || {};
-    for (var i = 0; i < names.length; i++) {
-      var value = row[names[i]];
-      if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
-    }
-    return "";
-  }
-
-  function arrayOf(data, keys) {
-    if (Array.isArray(data)) return data;
-    for (var i = 0; i < keys.length; i++) if (Array.isArray(data && data[keys[i]])) return data[keys[i]];
-    return [];
-  }
-
-  function json(path) {
-    if (!cache[path]) {
-      cache[path] = fetch(BASE + path, { cache: "default" }).then(function (response) {
-        if (!response.ok) throw new Error("Data request failed: " + path);
-        return response.json();
-      });
-    }
-    return cache[path];
-  }
-
-  function find(rows, value, idNames, slugNames) {
-    var target = norm(value);
-    return (rows || []).find(function (row) {
-      return norm(field(row, idNames)) === target || norm(field(row, slugNames)) === target;
-    }) || null;
-  }
-
-  function dedupe(rows) {
-    var seen = Object.create(null);
-    return (Array.isArray(rows) ? rows : []).filter(function (row) {
-      var key = field(row, ["Business_Id", "Business_Slug", "Business_Seo_Url"]);
-      if (!key) return true;
-      key = norm(key);
-      if (seen[key]) return false;
-      seen[key] = true;
-      return true;
-    });
-  }
-
-  function pageNumber(route) {
-    var value = Number(route && route.page);
-    return isFinite(value) && value > 0 ? Math.floor(value) : 1;
-  }
-
-  function loadIndexes() {
-    return json("SEO_INDEX.JSON").then(function (data) {
-      return {
-        states: arrayOf(data, ["States"]),
-        districts: arrayOf(data, ["Districts"]),
-        categories: arrayOf(data, ["Categories"]),
-        categoryFiles: data && data.Category_Files ? data.Category_Files : {},
-        raw: data
-      };
-    });
-  }
-
-  function loadDistrictIndex(district) {
-    var path = field(district, ["Index"]);
-    if (!path) return Promise.reject(new Error("District index is missing"));
-    return json(path);
-  }
-
-  function loadDistrictShard(district, shardFile) {
-    var id = field(district, ["District_Id"]);
-    var file = String(shardFile || "").split("/").pop();
-    return json("district-index/" + encodeURIComponent(id) + "/" + file).then(function (data) {
-      return dedupe(arrayOf(data, ["businesses", "data", "items"]));
-    });
-  }
-
-  function loadDistrictBusinesses(district, page) {
-    return loadDistrictIndex(district).then(function (meta) {
-      var number = Math.max(1, Number(page) || 1);
-      var shard = meta.Shards && meta.Shards[number - 1];
-      return shard ? loadDistrictShard(district, shard.file) : [];
-    });
-  }
-
-  function loadBusiness(district, businessSlug) {
-    return loadDistrictIndex(district).then(function (meta) {
-      var map = meta.Business_Slug_To_Shard || {};
-      var file = map[norm(businessSlug)];
-      if (!file) return null;
-      return loadDistrictShard(district, file).then(function (rows) {
-        return rows.find(function (business) {
-          return norm(field(business, ["Business_Slug", "businessSlug", "slug"])) === norm(businessSlug);
-        }) || null;
-      });
-    });
-  }
-
-  function loadCategoryBusinesses(category, page) {
-    var categoryId = field(category, ["Category_Id"]);
-    return loadIndexes().then(function (indexes) {
-      var meta = indexes.categoryFiles[categoryId];
-      var number = Math.max(1, Number(page) || 1);
-      var shard = meta && meta.Shards && meta.Shards[number - 1];
-      if (!shard) return [];
-      return json("category-index/" + shard.file).then(function (data) {
-        return dedupe(arrayOf(data, ["businesses", "data", "items"]));
-      });
-    });
-  }
-
-  function loadDistrictCategoryBusinesses(district, category, page) {
-    var categoryId = field(category, ["Category_Id"]);
-    return loadDistrictIndex(district).then(function (meta) {
-      var files = meta.Category_Shard_Map && meta.Category_Shard_Map[categoryId] || [];
-      var number = Math.max(1, Number(page) || 1);
-      var file = files[number - 1];
-      if (!file) return [];
-      return loadDistrictShard(district, file).then(function (rows) {
-        return rows.filter(function (business) {
-          return norm(field(business, ["Category_Id"])) === norm(categoryId);
-        });
-      });
-    });
-  }
-
-  function resolve(route) {
-    return loadIndexes().then(function (indexes) {
-      var data = {
-        route: route,
-        indexes: indexes,
-        state: null,
-        district: null,
-        category: null,
-        business: null,
-        businesses: [],
-        businessTotal: 0,
-        page: pageNumber(route),
-        pageCount: 0,
-        hasNext: false,
-        errors: []
-      };
-
-      if (route.stateSlug) data.state = find(indexes.states, route.stateSlug, ["State_Id"], ["State_Slug"]);
-      if (route.districtSlug) data.district = find(indexes.districts, route.districtSlug, ["District_Id"], ["District_Slug"]);
-      if (route.categorySlug) data.category = find(indexes.categories, route.categorySlug, ["Category_Id"], ["Category_Slug"]);
-
-      if (route.type === "home") return data;
-      if (route.type === "state") {
-        if (!data.state) data.errors.push("State not found");
-        return data;
-      }
-      if (route.type === "category") {
-        if (!data.category) {
-          data.errors.push("Category not found");
-          return data;
-        }
-        var categoryMeta = indexes.categoryFiles[field(data.category, ["Category_Id"])] || {};
-        data.businessTotal = Number(categoryMeta.Count || 0);
-        data.pageCount = Math.max(1, (categoryMeta.Shards || []).length);
-        data.page = Math.min(data.page, data.pageCount);
-        return loadCategoryBusinesses(data.category, data.page).then(function (rows) {
-          data.businesses = rows;
-          data.hasNext = data.page < data.pageCount;
-          return data;
-        });
-      }
-
-      if (!data.state) data.errors.push("State not found");
-      if (!data.district) data.errors.push("District not found");
-      if (!data.state || !data.district) return data;
-      if (norm(field(data.state, ["State_Id"])) !== norm(field(data.district, ["State_Id"]))) {
-        data.errors.push("District does not belong to state");
-        return data;
-      }
-
-      if (route.type === "business" || route.type === "district-category") {
-        if (!data.category) {
-          data.errors.push("Category not found");
-          return data;
-        }
-      }
-
-      if (route.type === "business") {
-        return loadBusiness(data.district, route.businessSlug).then(function (business) {
-          data.business = business;
-          data.businesses = business ? [business] : [];
-          if (!business) data.errors.push("Business not found");
-          return data;
-        });
-      }
-
-      return loadDistrictIndex(data.district).then(function (meta) {
-        if (route.type === "district") {
-          data.businessTotal = Number(meta.Count || 0);
-          data.pageCount = Math.max(1, (meta.Shards || []).length);
-          data.page = Math.min(data.page, data.pageCount);
-          return loadDistrictBusinesses(data.district, data.page).then(function (rows) {
-            data.businesses = rows;
-            data.hasNext = data.page < data.pageCount;
-            return data;
-          });
-        }
-
-        var categoryId = field(data.category, ["Category_Id"]);
-        var categoryFiles = meta.Category_Shard_Map && meta.Category_Shard_Map[categoryId] || [];
-        data.businessTotal = Number((meta.Category_Counts || {})[categoryId] || 0);
-        data.pageCount = Math.max(1, categoryFiles.length);
-        data.page = Math.min(data.page, data.pageCount);
-        return loadDistrictCategoryBusinesses(data.district, data.category, data.page).then(function (rows) {
-          data.businesses = dedupe(rows);
-          data.hasNext = data.page < data.pageCount;
-          return data;
-        });
-      });
-    });
-  }
-
-  window.UBnuxSEOData = {
-    version: "2.3.0",
-    loadIndexes: loadIndexes,
-    loadDistrictIndex: loadDistrictIndex,
-    loadDistrictBusinesses: loadDistrictBusinesses,
-    loadBusiness: loadBusiness,
-    loadCategoryBusinesses: loadCategoryBusinesses,
-    loadDistrictCategoryBusinesses: loadDistrictCategoryBusinesses,
-    resolve: resolve
-  };
+  window.UBnuxSEOData={version:"2.4.0",PAGE_SIZE:PAGE_SIZE,loadIndexes:loadIndexes,loadDistrictIndex:loadDistrictIndex,loadDistrictBusinesses:loadDistrictBusinesses,loadBusiness:loadBusiness,loadCategoryBusinesses:loadCategoryBusinesses,loadDistrictCategoryBusinesses:loadDistrictCategoryBusinesses,resolve:resolve};
 })(window);
