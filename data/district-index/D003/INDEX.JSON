@@ -1,0 +1,1 @@
+{"Version":"1.0.0","District_Id":"D003","Count":4,"Page_Size":1000,"Category_Counts":{"C0001":1,"C0002":1,"C0004":1,"C0008":1},"Shards":[{"file":"D003/0001.JSON","from":0,"to":4,"count":4}],"Business_Slug_To_Shard":{"gopalganj-style-studio":"0001.JSON","gopalganj-learning-point":"0001.JSON","maa-vaishnavi-restaurant":"0001.JSON","gopalganj-safety-academy":"0001.JSON"}}

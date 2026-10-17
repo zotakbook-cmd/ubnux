@@ -1,0 +1,1 @@
+{"Version":"1.0.0","District_Id":"D002","Count":4,"Page_Size":1000,"Category_Counts":{"C0001":1,"C0003":1,"C0005":1,"C0006":1},"Shards":[{"file":"D002/0001.JSON","from":0,"to":4,"count":4}],"Business_Slug_To_Shard":{"patna-fashion-hub":"0001.JSON","patna-career-academy":"0001.JSON","capital-view-hotel":"0001.JSON","patna-mobile-world":"0001.JSON"}}

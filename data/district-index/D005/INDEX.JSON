@@ -1,0 +1,1 @@
+{"Version":"1.0.0","District_Id":"D005","Count":4,"Page_Size":1000,"Category_Counts":{"C0001":1,"C0003":1,"C0005":1,"C0007":1},"Shards":[{"file":"D005/0001.JSON","from":0,"to":4,"count":4}],"Business_Slug_To_Shard":{"muzaffarpur-fashion-mart":"0001.JSON","muzaffarpur-career-classes":"0001.JSON","muzaffarpur-grand-hotel":"0001.JSON","north-bihar-hospital":"0001.JSON"}}

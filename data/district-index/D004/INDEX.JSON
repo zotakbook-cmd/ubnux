@@ -1,0 +1,1 @@
+{"Version":"1.0.0","District_Id":"D004","Count":4,"Page_Size":1000,"Category_Counts":{"C0001":1,"C0004":1,"C0006":1,"C0008":1},"Shards":[{"file":"D004/0001.JSON","from":0,"to":4,"count":4}],"Business_Slug_To_Shard":{"chhapra-fashion-gallery":"0001.JSON","saran-food-house":"0001.JSON","chhapra-mobile-care":"0001.JSON","saran-safety-institute":"0001.JSON"}}
