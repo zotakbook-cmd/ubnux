@@ -1,17 +1,17 @@
-/* UBnux Business Contact API v2.4.1
+/* UBnux Business Contact API v2.5.0
  * A = Business ID
  * B = Phone
  * C = Map / Google Maps URL or location text
  * D = Website URL
  * E = Business Description
  *
- * Uses HtmlService instead of ContentService for the response.
- * This avoids the current intermittent ContentService 302 ->
- * script.googleusercontent.com -> 404 delivery problem.
+ * Browser uses JSONP directly. This avoids making Cloudflare Worker
+ * depend on the Apps Script redirect chain. Worker proxy remains available
+ * as a server-side fallback.
  */
 
 const UBNUX_CONTACT_CONFIG = {
-  SPREADSHEET_ID: '1wPp7VT54l_ffu3_hlCnwNIHLRshthkyj77MBvJmxRJY',
+  SPREADSHEET_ID: '1wPp7VT54l_ff3u_hlCnwNIHLRshthkyj77MBvJmxRJY',
   CACHE_SECONDS: 300,
   EMPTY_CACHE_SECONDS: 15
 };
@@ -20,6 +20,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   const district = clean_(p.district);
   const businessId = clean_(p.businessId);
+  const callback = String(p.callback || '').trim();
   let payload;
 
   if (!district || !businessId) {
@@ -63,12 +64,24 @@ function doGet(e) {
     }
   }
 
-  return htmlJson_(payload);
+  return response_(payload, callback);
+}
+
+function response_(payload, callback) {
+  const json = JSON.stringify(payload);
+  if (callback && /^[A-Za-z_$][0-9A-Za-z_$\.]*$/.test(callback)) {
+    return ContentService
+      .createTextOutput(callback + '(' + json + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function findBusiness_(district, businessId) {
   const cache = CacheService.getScriptCache();
-  const key = 'bc6:' + normalize_(district) + ':' + normalizeId_(businessId);
+  const key = 'bc7:' + normalize_(district) + ':' + normalizeId_(businessId);
   const cached = cache.get(key);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) {}
@@ -146,9 +159,4 @@ function cacheEmpty_(cache, key) {
   const record = { found:false, phone:'', map:'', website:'', description:'' };
   cache.put(key, JSON.stringify(record), UBNUX_CONTACT_CONFIG.EMPTY_CACHE_SECONDS);
   return record;
-}
-
-function htmlJson_(payload) {
-  return HtmlService.createHtmlOutput(JSON.stringify(payload))
-    .setTitle('UBnux Contact API');
 }
