@@ -1,5 +1,6 @@
-// UBnux Cloudflare Pages Advanced Mode Worker v3.1.0
-// Server-render SEO HTML + JSON-LD structured data for /in/... routes.
+// UBnux Cloudflare Pages Advanced Mode Worker v3.2.0
+// Server-rendered SEO HTML + JSON-LD structured data for /in/... routes.
+// SEO_CONFIG.JSON controls whether test/demo route pages may be indexed.
 
 const ORIGIN = "https://ubnux.com";
 
@@ -42,8 +43,18 @@ async function json(env,requestUrl,path) {
   return response.json();
 }
 async function indexes(env,requestUrl) {
-  const [s,d,c]=await Promise.all([json(env,requestUrl,"STATE.JSON"),json(env,requestUrl,"DISTRICT.JSON"),json(env,requestUrl,"CATEGORY.JSON")]);
-  return {states:arr(s,["states","data","items"]),districts:arr(d,["districts","data","items"]),categories:arr(c,["categories","data","items"])};
+  const [s,d,c,seoConfig]=await Promise.all([
+    json(env,requestUrl,"STATE.JSON"),
+    json(env,requestUrl,"DISTRICT.JSON"),
+    json(env,requestUrl,"CATEGORY.JSON"),
+    json(env,requestUrl,"SEO_CONFIG.JSON")
+  ]);
+  return {
+    states:arr(s,["states","data","items"]),
+    districts:arr(d,["districts","data","items"]),
+    categories:arr(c,["categories","data","items"]),
+    indexingEnabled: !!seoConfig && seoConfig.Indexing_Enabled === true
+  };
 }
 function find(rows,slug,idNames,slugNames) {
   const target=clean(slug); return rows.find(row=>same(field(row,idNames),target)||same(field(row,slugNames),target))||null;
@@ -134,9 +145,11 @@ async function renderSeo(env,request,route) {
   const shellResponse=await env.ASSETS.fetch(new Request(shellUrl.toString()));let html=await shellResponse.text(),data;
   try{data=await resolve(env,request.url,route);}catch(_){data=null;}
   const valid=!!data&&(route.type==="home"||route.type==="state"?!!data.state||route.type==="home":route.type==="category"?!!data.category:route.type==="district"?!!data.state&&!!data.district&&same(field(data.district,["State_Id"]),field(data.state,["State_Id"])):!!data.state&&!!data.district&&!!data.category&&!!data.business);
+  const indexingEnabled=!!data?.indexingEnabled;
+  const publicIndexable=valid&&indexingEnabled;
   const title=valid?pageTitle(route,data):"Page Not Found | UBnux",description=valid?pageDescription(route,data):"The requested UBnux page could not be found.",canonical=ORIGIN+locationPath(route),body=valid?contentHtml(route,data):`<section class="ubnux-page-section"><div class="ubnux-container"><p class="ubnux-eyebrow">404</p><h1>Page not found</h1><p class="ubnux-intro">The requested UBnux page does not exist.</p><p><a class="ubnux-link" href="/">Go to UBnux home</a></p></div></section>`;
-  html=html.replace(/<title>[\s\S]*?<\/title>/i,`<title>${esc(title)}</title>`).replace(/<meta name="description" content="[^"]*">/i,`<meta name="description" content="${esc(description)}">`).replace(/<meta name="robots" content="[^"]*">/i,`<meta name="robots" content="${valid?"index,follow":"noindex,follow"}">`).replace(/<link rel="canonical" href="[^"]*">/i,`<link rel="canonical" href="${esc(canonical)}">`).replace(/<main id="ubnux-seo-root">[\s\S]*?<\/main>/i,`<main id="ubnux-seo-root">${body}</main>`);
-  if(valid){const schemaNode=`<script type="application/ld+json" data-ubnux-schema="true">${JSON.stringify(schema(route,data,title)).replace(/</g,"\\u003c")}</script>`;html=html.replace(/<\/head>/i,schemaNode+"</head>");}
-  const headers=new Headers(shellResponse.headers);headers.set("Content-Type","text/html; charset=UTF-8");headers.set("X-UBnux-Route",valid?"seo-ssr":"seo-404");headers.set("X-UBnux-Path",incoming.pathname);headers.set("Cache-Control","public, max-age=300, s-maxage=3600");return new Response(html,{status:valid?200:404,headers});
+  html=html.replace(/<title>[\s\S]*?<\/title>/i,`<title>${esc(title)}</title>`).replace(/<meta name="description" content="[^"]*">/i,`<meta name="description" content="${esc(description)}">`).replace(/<meta name="robots" content="[^"]*">/i,`<meta name="robots" content="${publicIndexable?"index,follow":"noindex,follow"}">`).replace(/<link rel="canonical" href="[^"]*">/i,`<link rel="canonical" href="${esc(canonical)}">`).replace(/<main id="ubnux-seo-root">[\s\S]*?<\/main>/i,`<main id="ubnux-seo-root">${body}</main>`);
+  if(publicIndexable){const schemaNode=`<script type="application/ld+json" data-ubnux-schema="true">${JSON.stringify(schema(route,data,title)).replace(/</g,"\\u003c")}</script>`;html=html.replace(/<\/head>/i,schemaNode+"</head>");}
+  const headers=new Headers(shellResponse.headers);headers.set("Content-Type","text/html; charset=UTF-8");headers.set("X-UBnux-Route",valid?"seo-ssr":"seo-404");headers.set("X-UBnux-Path",incoming.pathname);headers.set("X-Robots-Tag",publicIndexable?"index, follow":"noindex, follow");headers.set("Cache-Control","public, max-age=300, s-maxage=3600");return new Response(html,{status:valid?200:404,headers});
 }
 export default{async fetch(request,env){const incoming=new URL(request.url);if(incoming.pathname==="/in"||incoming.pathname.startsWith("/in/"))return renderSeo(env,request,parse(incoming.pathname));return env.ASSETS.fetch(request);}};
