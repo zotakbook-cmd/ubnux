@@ -1,0 +1,38 @@
+name: Validate SEO
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/**'
+      - 'sitemap.xml'
+      - 'scripts/**'
+      - '_worker.js'
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'sitemap.xml'
+      - 'scripts/**'
+      - '_worker.js'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate sitemap generation
+        run: node scripts/generate-sitemap.js
+
+      - name: Validate SEO relationships
+        run: node scripts/validate-seo.js
+
+      - name: Check generated sitemap is committed
+        run: git diff --exit-code -- sitemap.xml
