@@ -1,9 +1,9 @@
-/* UBnux Business Contact Client v1.0.0 */
+/* UBnux Business Contact Client v1.1.0 */
 (function(window, document){
   'use strict';
 
-  // Replace this with the deployed Google Apps Script Web App URL.
-  var API_URL = window.UBNUX_CONTACT_API_URL || '';
+  // Google Apps Script Web App endpoint.
+  var API_URL = 'https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
 
   function field(row, names){
     row = row || {};
@@ -55,7 +55,7 @@
   }
 
   window.UBnuxBusinessContact = {
-    version: '1.0.0',
+    version: '1.1.0',
     hydrateBusiness: hydrateBusiness
   };
 })(window, document);
