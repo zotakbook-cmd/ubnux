@@ -1,7 +1,115 @@
 [
-  {"Business_Title":"Mishra Fashion House","Category_Id":"C0001","District_Id":"D001","Business_Id":"B00001","Business_Slug":"mishra-fashion-house","Business_Rating":4.7,"Business_Review":50,"Business_Status":"Verified","Business_Keywords":["Mishra Fashion","Mishra ji dukan"],"Business_Seo_Url":"https://ubnux.com/in/bihar/siwan/fashion/mishra-fashion-house/"},
-  {"Business_Title":"Siwan Fashion Point","Category_Id":"C0001","District_Id":"D001","Business_Id":"B00002","Business_Slug":"siwan-fashion-point","Business_Rating":4.5,"Business_Review":32,"Business_Status":"Verified","Business_Keywords":["Siwan clothes","fashion shop"],"Business_Seo_Url":"https://ubnux.com/in/bihar/siwan/fashion/siwan-fashion-point/"},
-  {"Business_Title":"Bright Future Coaching","Category_Id":"C0003","District_Id":"D001","Business_Id":"B00003","Business_Slug":"bright-future-coaching","Business_Rating":4.6,"Business_Review":28,"Business_Status":"Verified","Business_Keywords":["Siwan coaching","competitive exam coaching"],"Business_Seo_Url":"https://ubnux.com/in/bihar/siwan/coaching-institute/bright-future-coaching/"},
-  {"Business_Title":"Siwan Food Corner","Category_Id":"C0004","District_Id":"D001","Business_Id":"B00004","Business_Slug":"siwan-food-corner","Business_Rating":4.4,"Business_Review":19,"Business_Status":"Verified","Business_Keywords":["Siwan restaurant","food"],"Business_Seo_Url":"https://ubnux.com/in/bihar/siwan/restaurant/siwan-food-corner/"},
-  {"Business_Title":"Tech Mobile Siwan","Category_Id":"C0006","District_Id":"D001","Business_Id":"B00005","Business_Slug":"tech-mobile-siwan","Business_Rating":4.3,"Business_Review":16,"Business_Status":"Verified","Business_Keywords":["Siwan mobile shop","smartphone"],"Business_Seo_Url":"https://ubnux.com/in/bihar/siwan/mobile-shop/tech-mobile-siwan/"}
+  {
+    "Business_Title": "Mishra Fashion House",
+    "Category_Id": "C0001",
+    "District_Id": "D001",
+    "Business_Id": "B00001",
+    "Business_Slug": "mishra-fashion-house",
+    "Business_Rating": 4.7,
+    "Business_Review": 50,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Mishra Fashion",
+      "Mishra ji dukan"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/fashion/mishra-fashion-house/"
+  },
+  {
+    "Business_Title": "Siwan Fashion Point",
+    "Category_Id": "C0001",
+    "District_Id": "D001",
+    "Business_Id": "B00002",
+    "Business_Slug": "siwan-fashion-point",
+    "Business_Rating": 4.5,
+    "Business_Review": 32,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Siwan clothes",
+      "fashion shop"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/fashion/siwan-fashion-point/"
+  },
+  {
+    "Business_Title": "Bright Future Coaching",
+    "Category_Id": "C0003",
+    "District_Id": "D001",
+    "Business_Id": "B00003",
+    "Business_Slug": "bright-future-coaching",
+    "Business_Rating": 4.6,
+    "Business_Review": 28,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Siwan coaching",
+      "competitive exam coaching"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/coaching-institute/bright-future-coaching/"
+  },
+  {
+    "Business_Title": "Siwan Food Corner",
+    "Category_Id": "C0004",
+    "District_Id": "D001",
+    "Business_Id": "B00004",
+    "Business_Slug": "siwan-food-corner",
+    "Business_Rating": 4.4,
+    "Business_Review": 19,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Siwan restaurant",
+      "food"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/restaurant/siwan-food-corner/"
+  },
+  {
+    "Business_Title": "Tech Mobile Siwan",
+    "Category_Id": "C0006",
+    "District_Id": "D001",
+    "Business_Id": "B00005",
+    "Business_Slug": "tech-mobile-siwan",
+    "Business_Rating": 4.3,
+    "Business_Review": 16,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Siwan mobile shop",
+      "smartphone"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/mobile-shop/tech-mobile-siwan/"
+  },
+  {
+    "Business_Title": "Demo Fashion Store Siwan",
+    "Business_Id": "DEMO-B001",
+    "District_Id": "D001",
+    "Category_Id": "C0001",
+    "Business_Slug": "demo-fashion-store-siwan",
+    "Business_Rating": 4.5,
+    "Business_Review": 12,
+    "Business_Status": "Demo",
+    "Business_Keywords": [
+      "fashion shop",
+      "clothing store",
+      "siwan fashion"
+    ],
+    "Business_Address": "Demo Market, Siwan, Bihar",
+    "Business_Pincode": "841226",
+    "Business_Description": "Demo business record for testing the UBnux SEO import pipeline.",
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/fashion/demo-fashion-store-siwan/"
+  },
+  {
+    "Business_Title": "Demo Coaching Institute Siwan",
+    "Business_Id": "DEMO-B004",
+    "District_Id": "D001",
+    "Category_Id": "C0003",
+    "Business_Slug": "demo-coaching-institute-siwan",
+    "Business_Rating": 4.7,
+    "Business_Review": 21,
+    "Business_Status": "Demo",
+    "Business_Keywords": [
+      "coaching institute",
+      "competitive exam coaching",
+      "siwan coaching"
+    ],
+    "Business_Address": "Demo Education Road, Siwan, Bihar",
+    "Business_Pincode": "841226",
+    "Business_Description": "Demo coaching record for testing a second category.",
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/siwan/coaching-institute/demo-coaching-institute-siwan/"
+  }
 ]

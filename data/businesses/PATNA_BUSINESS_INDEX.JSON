@@ -1,7 +1,115 @@
 [
-  {"Business_Title":"Patna Fashion Hub","Category_Id":"C0001","District_Id":"D002","Business_Id":"B00101","Business_Slug":"patna-fashion-hub","Business_Rating":4.8,"Business_Review":74,"Business_Status":"Verified","Business_Keywords":["Patna fashion","clothes"],"Business_Seo_Url":"https://ubnux.com/in/bihar/patna/fashion/patna-fashion-hub/"},
-  {"Business_Title":"Patna Career Academy","Category_Id":"C0003","District_Id":"D002","Business_Id":"B00102","Business_Slug":"patna-career-academy","Business_Rating":4.7,"Business_Review":61,"Business_Status":"Verified","Business_Keywords":["Patna coaching","career coaching"],"Business_Seo_Url":"https://ubnux.com/in/bihar/patna/coaching-institute/patna-career-academy/"},
-  {"Business_Title":"Capital View Hotel","Category_Id":"C0005","District_Id":"D002","Business_Id":"B00103","Business_Slug":"capital-view-hotel","Business_Rating":4.4,"Business_Review":43,"Business_Status":"Verified","Business_Keywords":["Patna hotel","rooms"],"Business_Seo_Url":"https://ubnux.com/in/bihar/patna/hotel/capital-view-hotel/"},
-  {"Business_Title":"Patna Mobile World","Category_Id":"C0006","District_Id":"D002","Business_Id":"B00104","Business_Slug":"patna-mobile-world","Business_Rating":4.5,"Business_Review":38,"Business_Status":"Verified","Business_Keywords":["Patna mobile shop","smartphone"],"Business_Seo_Url":"https://ubnux.com/in/bihar/patna/mobile-shop/patna-mobile-world/"},
-  {"Business_Title":"City Care Hospital Patna","Category_Id":"C0007","District_Id":"D002","Business_Id":"B00105","Business_Slug":"city-care-hospital-patna","Business_Rating":4.2,"Business_Review":29,"Business_Status":"Verified","Business_Keywords":["Patna hospital","healthcare"],"Business_Seo_Url":"https://ubnux.com/in/bihar/patna/hospital/city-care-hospital-patna/"}
+  {
+    "Business_Title": "Patna Fashion Hub",
+    "Category_Id": "C0001",
+    "District_Id": "D002",
+    "Business_Id": "B00101",
+    "Business_Slug": "patna-fashion-hub",
+    "Business_Rating": 4.8,
+    "Business_Review": 74,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Patna fashion",
+      "clothes"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/patna/fashion/patna-fashion-hub/"
+  },
+  {
+    "Business_Title": "Patna Career Academy",
+    "Category_Id": "C0003",
+    "District_Id": "D002",
+    "Business_Id": "B00102",
+    "Business_Slug": "patna-career-academy",
+    "Business_Rating": 4.7,
+    "Business_Review": 61,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Patna coaching",
+      "career coaching"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/patna/coaching-institute/patna-career-academy/"
+  },
+  {
+    "Business_Title": "Capital View Hotel",
+    "Category_Id": "C0005",
+    "District_Id": "D002",
+    "Business_Id": "B00103",
+    "Business_Slug": "capital-view-hotel",
+    "Business_Rating": 4.4,
+    "Business_Review": 43,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Patna hotel",
+      "rooms"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/patna/hotel/capital-view-hotel/"
+  },
+  {
+    "Business_Title": "Patna Mobile World",
+    "Category_Id": "C0006",
+    "District_Id": "D002",
+    "Business_Id": "B00104",
+    "Business_Slug": "patna-mobile-world",
+    "Business_Rating": 4.5,
+    "Business_Review": 38,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Patna mobile shop",
+      "smartphone"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/patna/mobile-shop/patna-mobile-world/"
+  },
+  {
+    "Business_Title": "City Care Hospital Patna",
+    "Category_Id": "C0007",
+    "District_Id": "D002",
+    "Business_Id": "B00105",
+    "Business_Slug": "city-care-hospital-patna",
+    "Business_Rating": 4.2,
+    "Business_Review": 29,
+    "Business_Status": "Verified",
+    "Business_Keywords": [
+      "Patna hospital",
+      "healthcare"
+    ],
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/patna/hospital/city-care-hospital-patna/"
+  },
+  {
+    "Business_Title": "Demo Fashion Hub Patna",
+    "Business_Id": "DEMO-B002",
+    "District_Id": "D002",
+    "Category_Id": "C0001",
+    "Business_Slug": "demo-fashion-hub-patna",
+    "Business_Rating": 4.6,
+    "Business_Review": 18,
+    "Business_Status": "Demo",
+    "Business_Keywords": [
+      "fashion shop",
+      "clothing store",
+      "patna fashion"
+    ],
+    "Business_Address": "Demo Market, Patna, Bihar",
+    "Business_Pincode": "800001",
+    "Business_Description": "Demo business record for testing global category aggregation.",
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/patna/fashion/demo-fashion-hub-patna/"
+  },
+  {
+    "Business_Title": "Demo Safety Training Institute Patna",
+    "Business_Id": "DEMO-B005",
+    "District_Id": "D002",
+    "Category_Id": "C0008",
+    "Business_Slug": "demo-safety-training-institute-patna",
+    "Business_Rating": 4.3,
+    "Business_Review": 7,
+    "Business_Status": "Demo",
+    "Business_Keywords": [
+      "safety training",
+      "safety institute",
+      "patna safety training"
+    ],
+    "Business_Address": "Demo Industrial Area, Patna, Bihar",
+    "Business_Pincode": "800001",
+    "Business_Description": "Demo safety institute record for testing category routing.",
+    "Business_Seo_Url": "https://ubnux.com/in/bihar/patna/safety-training-institute/demo-safety-training-institute-patna/"
+  }
 ]
