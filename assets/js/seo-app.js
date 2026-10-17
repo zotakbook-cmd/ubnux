@@ -1,6 +1,8 @@
-/* UBnux Fresh SEO App v1.1.0 */
+/* UBnux Fresh SEO App v1.2.0 */
 (function (window, document) {
   "use strict";
+
+  var SEO_ORIGIN = "https://ubnux.com";
 
   function setMeta(name, content) {
     var node = document.querySelector('meta[name="' + name + '"]');
@@ -56,17 +58,17 @@
   function canonical() {
     var path = String(window.location.pathname || "/").replace(/\/+/g, "/");
     if (path !== "/" && path.slice(-1) !== "/") path += "/";
-    return window.location.origin + path;
+    return SEO_ORIGIN + path;
   }
 
   function isResolved(route, data) {
     if (!route || route.valid === false || !data) return false;
     if (route.type === "home") return true;
-    if (route.type === "state") return !!data.state;
-    if (route.type === "district") return !!data.state && !!data.district;
-    if (route.type === "category") return !!data.category;
-    if (route.type === "district-category") return !!data.state && !!data.district && !!data.category;
-    if (route.type === "business") return !!data.state && !!data.district && !!data.category && !!data.business;
+    if (route.type === "state") return !!data.state && data.errors.length === 0;
+    if (route.type === "district") return !!data.state && !!data.district && data.errors.length === 0;
+    if (route.type === "category") return !!data.category && data.errors.length === 0;
+    if (route.type === "district-category") return !!data.state && !!data.district && !!data.category && data.errors.length === 0;
+    if (route.type === "business") return !!data.state && !!data.district && !!data.category && !!data.business && data.errors.length === 0;
     return false;
   }
 
@@ -90,7 +92,7 @@
     }
 
     var promise = route.type === "home"
-      ? Promise.resolve({ route: route, indexes: { states: [], districts: [], categories: [] }, businesses: [] })
+      ? Promise.resolve({ route: route, indexes: { states: [], districts: [], categories: [] }, businesses: [], errors: [] })
       : window.UBnuxSEOData.resolve(route);
 
     promise.then(function (data) {
@@ -113,7 +115,9 @@
     }).catch(function (error) {
       console.error("UBnux SEO bootstrap failed", error);
       document.title = "UBnux — Local Business Search";
+      setMeta("description", "UBnux local business search engine.");
       setMeta("robots", "noindex,follow");
+      setCanonical(canonical());
       if (window.UBnuxSEOSchema) window.UBnuxSEOSchema.remove();
       var root = document.getElementById("ubnux-seo-root");
       if (root) root.innerHTML = '<section class="ubnux-page-section"><div class="ubnux-container"><h1>UBnux is temporarily unavailable</h1><p class="ubnux-intro">Please try again in a moment.</p></div></section>';
