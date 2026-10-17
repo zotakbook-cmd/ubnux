@@ -1,12 +1,1 @@
-[
-  {
-    "Business_Title": "Example Fashion Store",
-    "Business_Id": "B10001",
-    "District_Id": "D001",
-    "Category_Id": "C0001",
-    "Business_Rating": 0,
-    "Business_Review": 0,
-    "Business_Status": "Active",
-    "Business_Keywords": ["fashion", "clothing"]
-  }
-]
+[]
