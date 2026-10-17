@@ -1,20 +1,18 @@
-/* UBnux Fresh SEO Router v1.2.0 */
+/* UBnux SEO Router v1.3.0 */
 (function (window) {
   "use strict";
 
   function clean(value) {
-    return String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/^\/+|\/+$/g, "");
+    return String(value || "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
   }
 
   function pageFromSearch(search) {
     try {
       var params = new URLSearchParams(search || window.location.search || "");
-      var value = Number(params.get("page"));
-      return isFinite(value) && value > 0 ? Math.floor(value) : 1;
-    } catch (e) {
+      var raw = params.get("page");
+      var value = Number(raw);
+      return raw !== null && Number.isInteger(value) && value > 0 ? value : 1;
+    } catch (error) {
       return 1;
     }
   }
@@ -25,17 +23,14 @@
     var parts = path ? path.split("/").filter(Boolean) : [];
     var page = pageFromSearch(search);
 
-    if (!parts.length) return { type: "home", parts: [], page: page, valid: true };
-
-    if (parts[0] !== "in") {
-      return { type: "not-found", parts: parts, page: page, valid: false };
-    }
+    if (!parts.length) return { type: "home", parts: [], page: 1, valid: true };
+    if (parts[0] !== "in") return { type: "not-found", parts: parts, page: 1, valid: false };
 
     var rest = parts.slice(1);
-    if (!rest.length) return { type: "home", parts: [], page: page, valid: true };
+    if (!rest.length) return { type: "home", parts: [], page: 1, valid: true };
 
     if (rest.length === 1) {
-      return { type: "state", stateSlug: rest[0], parts: rest, page: page, valid: true };
+      return { type: "state", stateSlug: rest[0], parts: rest, page: 1, valid: true };
     }
 
     if (rest.length === 2 && rest[0] === "all") {
@@ -78,11 +73,11 @@
       };
     }
 
-    return { type: "not-found", parts: rest, page: page, valid: false };
+    return { type: "not-found", parts: rest, page: 1, valid: false };
   }
 
   window.UBnuxSEORouter = {
-    version: "1.2.0",
+    version: "1.3.0",
     parse: parse,
     normalize: clean,
     getPage: pageFromSearch
