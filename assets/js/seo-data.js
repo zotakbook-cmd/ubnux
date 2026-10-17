@@ -1,221 +1,139 @@
-/* UBnux Fresh SEO Data Resolver v1.3.0 */
+/* UBnux Exact SEO Data Resolver v2.0.0 */
 (function (window) {
   "use strict";
 
   var BASE = "/data/";
   var cache = Object.create(null);
 
-  function normalize(value) {
-    return String(value == null ? "" : value).trim().toLowerCase();
-  }
-
+  function normalize(value) { return String(value == null ? "" : value).trim().toLowerCase(); }
   function readJSON(path) {
     if (cache[path]) return cache[path];
-    var request = fetch(BASE + path, { cache: "default" })
-      .then(function (response) {
-        if (!response.ok) throw new Error("Data request failed: " + path);
-        return response.json();
-      })
-      .then(function (data) {
-        cache[path] = data;
-        return data;
-      });
+    var request = fetch(BASE + path, { cache: "default" }).then(function (response) {
+      if (!response.ok) throw new Error("Data request failed: " + path);
+      return response.json();
+    });
     cache[path] = request;
     return request;
   }
-
   function arrayFrom(data, keys) {
     if (Array.isArray(data)) return data;
-    for (var i = 0; i < keys.length; i++) {
-      if (Array.isArray(data && data[keys[i]])) return data[keys[i]];
-    }
-    return data && typeof data === "object" ? [data] : [];
+    for (var i = 0; i < keys.length; i++) if (Array.isArray(data && data[keys[i]])) return data[keys[i]];
+    return [];
   }
-
   function field(row, names) {
-    for (var i = 0; i < names.length; i++) {
-      if (row && row[names[i]] != null) return row[names[i]];
-    }
+    for (var i = 0; i < names.length; i++) if (row && row[names[i]] != null && String(row[names[i]]).trim() !== "") return String(row[names[i]]).trim();
     return "";
   }
-
-  function loadIndexes() {
-    return Promise.all([
-      readJSON("STATE.JSON"),
-      readJSON("DISTRICT.JSON"),
-      readJSON("CATEGORY.JSON")
-    ]).then(function (items) {
-      return {
-        states: arrayFrom(items[0], ["states", "data", "items"]),
-        districts: arrayFrom(items[1], ["districts", "data", "items"]),
-        categories: arrayFrom(items[2], ["categories", "data", "items"])
-      };
-    });
-  }
-
   function findBySlugOrId(rows, slug, idNames, slugNames) {
     var target = normalize(slug);
-    return rows.find(function (row) {
-      var id = normalize(field(row, idNames));
-      var value = normalize(field(row, slugNames));
-      return id === target || value === target;
-    }) || null;
+    return rows.find(function (row) { return normalize(field(row, idNames)) === target || normalize(field(row, slugNames)) === target; }) || null;
   }
+  function findDistrict(indexes, slug) { return findBySlugOrId(indexes.districts, slug, ["District_Id","districtId","id"], ["District_Slug","districtSlug","slug"]); }
+  function findState(indexes, slug) { return findBySlugOrId(indexes.states, slug, ["State_Id","stateId","id"], ["State_Slug","stateSlug","slug"]); }
+  function findCategory(indexes, slug) { return findBySlugOrId(indexes.categories, slug, ["Category_Id","categoryId","id"], ["Category_Slug","categorySlug","slug"]); }
 
-  function findState(indexes, slug) {
-    return findBySlugOrId(indexes.states, slug,
-      ["State_Id", "stateId", "id"],
-      ["State_Slug", "stateSlug", "slug"]);
-  }
-
-  function findDistrict(indexes, slug) {
-    return findBySlugOrId(indexes.districts, slug,
-      ["District_Id", "districtId", "id"],
-      ["District_Slug", "districtSlug", "slug"]);
-  }
-
-  function findCategory(indexes, slug) {
-    return findBySlugOrId(indexes.categories, slug,
-      ["Category_Id", "categoryId", "id"],
-      ["Category_Slug", "categorySlug", "slug"]);
-  }
-
-  function loadDistrictBusinesses(district) {
-    var districtId = field(district, ["District_Id", "districtId", "id"]);
-    var slug = field(district, ["District_Slug", "districtSlug", "slug"]);
-    var file = String(slug || districtId || "").toUpperCase() + "_BUSINESS_INDEX.JSON";
-    return readJSON("businesses/" + file).then(function (data) {
-      return arrayFrom(data, ["businesses", "data", "items"]);
+  function loadIndex() {
+    return readJSON("SEO_INDEX.JSON").then(function (raw) {
+      return {
+        states: arrayFrom(raw, ["States"]),
+        districts: arrayFrom(raw, ["Districts"]),
+        categories: arrayFrom(raw, ["Categories"]),
+        categoryFiles: raw.Category_Files || {},
+        raw: raw
+      };
     });
   }
+  function loadIndexes() { return loadIndex(); }
 
-  function loadCategoryBusinesses(category) {
-    var categoryId = field(category, ["Category_Id", "categoryId", "id"]);
-    if (!categoryId) return Promise.resolve([]);
-
-    return readJSON("category-index/" + encodeURIComponent(categoryId) + ".JSON")
-      .then(function (data) {
-        return arrayFrom(data, ["businesses", "data", "items"]);
+  function loadDistrictIndex(district) {
+    var id = field(district, ["District_Id","districtId","id"]);
+    return readJSON("district-index/" + encodeURIComponent(id) + "/INDEX.JSON");
+  }
+  function loadDistrictBusinesses(district, shardNumber) {
+    var shard = Number(shardNumber || 1);
+    return loadDistrictIndex(district).then(function (meta) {
+      var item = meta.Shards && meta.Shards[shard - 1];
+      if (!item) return [];
+      return readJSON(item.file).then(function (data) { return arrayFrom(data, ["businesses","data","items"]); });
+    });
+  }
+  function loadBusiness(district, businessSlug) {
+    return loadDistrictIndex(district).then(function (meta) {
+      var file = meta.Business_Slug_To_Shard && meta.Business_Slug_To_Shard[normalize(businessSlug)];
+      if (!file) return null;
+      return readJSON("district-index/" + encodeURIComponent(field(district,["District_Id"])) + "/" + file).then(function (rows) {
+        rows = arrayFrom(rows, ["businesses","data","items"]);
+        return rows.find(function (b) { return normalize(field(b,["Business_Slug","businessSlug","slug"])) === normalize(businessSlug); }) || null;
       });
+    });
   }
-
-  function sameId(a, b) {
-    return normalize(a) !== "" && normalize(a) === normalize(b);
+  function loadCategoryBusinesses(category, shardNumber) {
+    var id = field(category, ["Category_Id","categoryId","id"]);
+    if (!id) return Promise.resolve([]);
+    var meta = null;
+    return loadIndex().then(function (ix) {
+      meta = ix.categoryFiles[id];
+      if (!meta) return [];
+      var shard = Number(shardNumber || 1), item = meta.Shards && meta.Shards[shard - 1];
+      if (!item) return [];
+      return readJSON("category-index/" + item.file).then(function (data) { return arrayFrom(data, ["businesses","data","items"]); });
+    });
   }
-
-  function stateOwnsDistrict(state, district) {
-    return !!state && !!district && sameId(
-      field(district, ["State_Id", "stateId"]),
-      field(state, ["State_Id", "stateId", "id"])
-    );
-  }
-
-  function businessMatchesContext(business, district, category) {
-    var districtId = field(district, ["District_Id", "districtId", "id"]);
-    var categoryId = field(category, ["Category_Id", "categoryId", "id"]);
-    var businessDistrictId = field(business, ["District_Id", "districtId"]);
-    var businessCategoryId = field(business, ["Category_Id", "categoryId"]);
-
-    if (businessDistrictId && !sameId(businessDistrictId, districtId)) return false;
-    if (category && businessCategoryId && !sameId(businessCategoryId, categoryId)) return false;
-    return true;
-  }
+  function same(a,b) { return normalize(a) !== "" && normalize(a) === normalize(b); }
+  function stateOwnsDistrict(state,district) { return !!state && !!district && same(field(state,["State_Id"]),field(district,["State_Id"])); }
+  function businessMatchesContext(b,d,c) { return same(field(b,["District_Id"]),field(d,["District_Id"])) && (!c || same(field(b,["Category_Id"]),field(c,["Category_Id"]))); }
 
   function resolve(route) {
-    return loadIndexes().then(function (indexes) {
-      var result = {
-        route: route,
-        indexes: indexes,
-        state: null,
-        district: null,
-        category: null,
-        business: null,
-        businesses: [],
-        errors: []
-      };
-
+    return loadIndex().then(function (indexes) {
+      var result = { route: route, indexes: indexes, state:null, district:null, category:null, business:null, businesses:[], businessTotal:0, errors:[] };
       if (route.stateSlug) result.state = findState(indexes, route.stateSlug);
       if (route.districtSlug) result.district = findDistrict(indexes, route.districtSlug);
       if (route.categorySlug) result.category = findCategory(indexes, route.categorySlug);
 
-      if (route.type === "state") {
-        if (!result.state) result.errors.push("State not found");
-        return result;
-      }
-
+      if (route.type === "home") return result;
+      if (route.type === "state") { if (!result.state) result.errors.push("State not found"); return result; }
       if (route.type === "category") {
-        if (!result.category) {
-          result.errors.push("Category not found");
+        if (!result.category) { result.errors.push("Category not found"); return result; }
+        var meta = indexes.categoryFiles[field(result.category,["Category_Id"])];
+        result.businessTotal = meta ? Number(meta.Count || 0) : 0;
+        return loadCategoryBusinesses(result.category, 1).then(function (rows) {
+          result.businesses = rows.filter(function (b) { return same(field(b,["Category_Id"]),field(result.category,["Category_Id"])); });
           return result;
-        }
-
-        return loadCategoryBusinesses(result.category)
-          .then(function (businesses) {
-            var cid = field(result.category, ["Category_Id", "categoryId", "id"]);
-            result.businesses = businesses.filter(function (business) {
-              return sameId(field(business, ["Category_Id", "categoryId"]), cid);
-            });
-            return result;
-          })
-          .catch(function () {
-            // Backward-compatible fallback for a category index that has not been built yet.
-            return Promise.all(indexes.districts.map(function (district) {
-              return loadDistrictBusinesses(district).catch(function () { return []; });
-            })).then(function (groups) {
-              var cid = field(result.category, ["Category_Id", "categoryId", "id"]);
-              result.businesses = groups.reduce(function (all, group) {
-                return all.concat(group);
-              }, []).filter(function (business) {
-                return sameId(field(business, ["Category_Id", "categoryId"]), cid);
-              });
-              return result;
-            });
-          });
+        });
       }
 
       if (!result.state) result.errors.push("State not found");
       if (!result.district) result.errors.push("District not found");
-
       if (!result.state || !result.district) return result;
+      if (!stateOwnsDistrict(result.state,result.district)) { result.errors.push("District does not belong to state"); return result; }
+      if (route.type === "district" && result.category) { result.errors.push("Invalid district route"); return result; }
+      if ((route.type === "district-category" || route.type === "business") && !result.category) { result.errors.push("Category not found"); return result; }
 
-      if (!stateOwnsDistrict(result.state, result.district)) {
-        result.errors.push("District does not belong to state");
-        return result;
-      }
-
-      if (route.type === "district" && result.category) {
-        result.errors.push("Invalid district route");
-        return result;
-      }
-
-      if ((route.type === "district-category" || route.type === "business") && !result.category) {
-        result.errors.push("Category not found");
-        return result;
-      }
-
-      return loadDistrictBusinesses(result.district).catch(function () { return []; }).then(function (businesses) {
-        result.businesses = businesses.filter(function (business) {
-          return businessMatchesContext(business, result.district, result.category);
+      var did = field(result.district,["District_Id"]);
+      var districtMeta = result.district;
+      result.businessTotal = Number(districtMeta.Count || 0);
+      if (route.type === "business") {
+        return loadBusiness(result.district, route.businessSlug).then(function (business) {
+          result.business = business;
+          result.businesses = business ? [business] : [];
+          if (!business) result.errors.push("Business not found");
+          return result;
         });
-
-        if (route.businessSlug) {
-          var target = normalize(route.businessSlug);
-          result.business = result.businesses.find(function (business) {
-            return normalize(field(business, ["Business_Slug", "businessSlug", "slug"])) === target;
-          }) || null;
-
-          if (!result.business) result.errors.push("Business not found");
-        }
-
+      }
+      return loadDistrictBusinesses(result.district,1).then(function (rows) {
+        result.businesses = rows.filter(function (b) { return businessMatchesContext(b,result.district,result.category); });
+        if (result.category) result.businessTotal = result.businesses.length < 1000 ? result.businesses.length : Number(districtMeta.Count || 0);
         return result;
       });
     });
   }
 
   window.UBnuxSEOData = {
-    version: "1.3.0",
+    version: "2.0.0",
     loadIndexes: loadIndexes,
+    loadDistrictIndex: loadDistrictIndex,
     loadDistrictBusinesses: loadDistrictBusinesses,
+    loadBusiness: loadBusiness,
     loadCategoryBusinesses: loadCategoryBusinesses,
     resolve: resolve
   };
