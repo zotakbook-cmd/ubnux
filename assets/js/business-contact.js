@@ -1,7 +1,7 @@
 /* UBnux Business Contact Client v1.9.0 */
 (function(window,document){
 'use strict';
-var DIRECT_API_URL='https://script.google.com/macros/s/AKfycbzb2ycoXQEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
+var DIRECT_API_URL='https://script.google.com/macros/s/AKfycbzb2ycoXqEZtQW_QkIE8FayjIjH0uwnMhvbJgish3s9y55jkmy1gb1PGx7SJMEn40W_/exec';
 var PROXY_URL='/api/business-contact';
 var requestSerial=0;
 function field(row,names){row=row||{};for(var i=0;i<names.length;i++){var value=row[names[i]];if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value).trim();}return '';}
