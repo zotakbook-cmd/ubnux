@@ -28,6 +28,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Generate current sitemap for validation
+        run: node scripts/generate-sitemap.js
+
       - name: Validate SEO relationships and URL rules
         run: node scripts/validate-seo.js
 
