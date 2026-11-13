@@ -12,30 +12,58 @@ on:
 permissions:
   contents: write
 
+# Prevent two sitemap jobs from pushing at the same time.
+concurrency:
+  group: generate-sitemap-main
+  cancel-in-progress: false
+
 jobs:
   sitemap:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Generate sitemap
-        run: node scripts/generate-sitemap.js
-
-      - name: Commit sitemap when changed
+      - name: Generate and push sitemap
+        shell: bash
         run: |
-          if git diff --quiet -- sitemap.xml; then
-            echo "Sitemap unchanged."
-            exit 0
-          fi
+          set -e
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add sitemap.xml
-          git commit -m "chore: auto-update sitemap [skip ci]"
-          git push
+
+          # Regenerate from the latest main each time, so a concurrent
+          # repository update cannot leave this job pushing a stale commit.
+          for attempt in 1 2 3 4 5; do
+            echo "Sitemap update attempt ${attempt}/5"
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            node scripts/generate-sitemap.js
+
+            if git diff --quiet -- sitemap.xml; then
+              echo "Sitemap is already up to date."
+              exit 0
+            fi
+
+            git add sitemap.xml
+            git commit -m "chore: auto-update sitemap [skip ci]"
+
+            if git push origin HEAD:main; then
+              echo "Sitemap pushed successfully."
+              exit 0
+            fi
+
+            echo "Push rejected because main changed; retrying from latest main..."
+          done
+
+          echo "Could not push sitemap after 5 attempts."
+          exit 1
