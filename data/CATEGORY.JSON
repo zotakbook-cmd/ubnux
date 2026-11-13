@@ -1,10 +1,395 @@
 [
-  {"Category_Title":"Fashion","Category_Id":"C0001","Category_Slug":"fashion","Category_Keywords":["Fashion","clothes"],"Category_Seo_Url":"https://ubnux.com/in/all/fashion/"},
-  {"Category_Title":"Education","Category_Id":"C0002","Category_Slug":"education","Category_Keywords":["Education","school","study"],"Category_Seo_Url":"https://ubnux.com/in/all/education/"},
-  {"Category_Title":"Coaching Institute","Category_Id":"C0003","Category_Slug":"coaching-institute","Category_Keywords":["Coaching","coaching institute","classes"],"Category_Seo_Url":"https://ubnux.com/in/all/coaching-institute/"},
-  {"Category_Title":"Restaurant","Category_Id":"C0004","Category_Slug":"restaurant","Category_Keywords":["Restaurant","food","dining"],"Category_Seo_Url":"https://ubnux.com/in/all/restaurant/"},
-  {"Category_Title":"Hotel","Category_Id":"C0005","Category_Slug":"hotel","Category_Keywords":["Hotel","stay","rooms"],"Category_Seo_Url":"https://ubnux.com/in/all/hotel/"},
-  {"Category_Title":"Mobile Shop","Category_Id":"C0006","Category_Slug":"mobile-shop","Category_Keywords":["Mobile Shop","smartphone","mobile"],"Category_Seo_Url":"https://ubnux.com/in/all/mobile-shop/"},
-  {"Category_Title":"Hospital","Category_Id":"C0007","Category_Slug":"hospital","Category_Keywords":["Hospital","clinic","healthcare"],"Category_Seo_Url":"https://ubnux.com/in/all/hospital/"},
-  {"Category_Title":"Safety Training Institute","Category_Id":"C0008","Category_Slug":"safety-training-institute","Category_Keywords":["Safety Training","safety institute","fire safety"],"Category_Seo_Url":"https://ubnux.com/in/all/safety-training-institute/"}
+  {
+    "Category_Title": "Fashion",
+    "Category_Id": "C0001",
+    "Category_Slug": "fashion",
+    "Category_Keywords": [
+      "fashion",
+      "clothing",
+      "garments",
+      "apparel",
+      " कपड़े"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/fashion/"
+  },
+  {
+    "Category_Title": "Education",
+    "Category_Id": "C0002",
+    "Category_Slug": "education",
+    "Category_Keywords": [
+      "education",
+      "school",
+      "college",
+      "study"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/education/"
+  },
+  {
+    "Category_Title": "Coaching Institute",
+    "Category_Id": "C0003",
+    "Category_Slug": "coaching-institute",
+    "Category_Keywords": [
+      "coaching",
+      "coaching institute",
+      "tuition",
+      "classes"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/coaching-institute/"
+  },
+  {
+    "Category_Title": "Restaurant",
+    "Category_Id": "C0004",
+    "Category_Slug": "restaurant",
+    "Category_Keywords": [
+      "restaurant",
+      "food",
+      "dining",
+      "dhaba"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/restaurant/"
+  },
+  {
+    "Category_Title": "Hotel",
+    "Category_Id": "C0005",
+    "Category_Slug": "hotel",
+    "Category_Keywords": [
+      "hotel",
+      "stay",
+      "rooms",
+      "lodging"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/hotel/"
+  },
+  {
+    "Category_Title": "Mobile Shop",
+    "Category_Id": "C0006",
+    "Category_Slug": "mobile-shop",
+    "Category_Keywords": [
+      "mobile shop",
+      "smartphone",
+      "mobile",
+      "phone repair"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/mobile-shop/"
+  },
+  {
+    "Category_Title": "Hospital",
+    "Category_Id": "C0007",
+    "Category_Slug": "hospital",
+    "Category_Keywords": [
+      "hospital",
+      "clinic",
+      "healthcare"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/hospital/"
+  },
+  {
+    "Category_Title": "Safety Training Institute",
+    "Category_Id": "C0008",
+    "Category_Slug": "safety-training-institute",
+    "Category_Keywords": [
+      "safety training",
+      "safety institute",
+      "fire safety"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/safety-training-institute/"
+  },
+  {
+    "Category_Title": "Bicycle Shop",
+    "Category_Id": "C0009",
+    "Category_Slug": "bicycle-shop",
+    "Category_Keywords": [
+      "bicycle",
+      "cycle shop",
+      "cycle repair"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/bicycle-shop/"
+  },
+  {
+    "Category_Title": "Book Store",
+    "Category_Id": "C0010",
+    "Category_Slug": "book-store",
+    "Category_Keywords": [
+      "book store",
+      "books",
+      "stationery books"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/book-store/"
+  },
+  {
+    "Category_Title": "Jewellery Store",
+    "Category_Id": "C0011",
+    "Category_Slug": "jewellery-store",
+    "Category_Keywords": [
+      "jewellery",
+      "jeweler",
+      "gold jewellery"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/jewellery-store/"
+  },
+  {
+    "Category_Title": "Clothing Wholesaler",
+    "Category_Id": "C0012",
+    "Category_Slug": "clothing-wholesaler",
+    "Category_Keywords": [
+      "clothing wholesaler",
+      "garment wholesale",
+      "saree wholesale"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/clothing-wholesaler/"
+  },
+  {
+    "Category_Title": "Pet Store",
+    "Category_Id": "C0013",
+    "Category_Slug": "pet-store",
+    "Category_Keywords": [
+      "pet store",
+      "aquarium",
+      "pet supplies"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/pet-store/"
+  },
+  {
+    "Category_Title": "Furniture Store",
+    "Category_Id": "C0014",
+    "Category_Slug": "furniture-store",
+    "Category_Keywords": [
+      "furniture",
+      "sofa",
+      "furnishing",
+      "interior"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/furniture-store/"
+  },
+  {
+    "Category_Title": "Wholesale Market",
+    "Category_Id": "C0015",
+    "Category_Slug": "wholesale-market",
+    "Category_Keywords": [
+      "wholesale",
+      "wholesale market",
+      "distributor"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/wholesale-market/"
+  },
+  {
+    "Category_Title": "Stationery Store",
+    "Category_Id": "C0016",
+    "Category_Slug": "stationery-store",
+    "Category_Keywords": [
+      "stationery",
+      "school supplies",
+      "office supplies"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/stationery-store/"
+  },
+  {
+    "Category_Title": "Bakery & Cake Shop",
+    "Category_Id": "C0017",
+    "Category_Slug": "bakery-cake-shop",
+    "Category_Keywords": [
+      "bakery",
+      "cake shop",
+      "pastry",
+      "sweets"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/bakery-cake-shop/"
+  },
+  {
+    "Category_Title": "Grocery & General Store",
+    "Category_Id": "C0018",
+    "Category_Slug": "grocery-general-store",
+    "Category_Keywords": [
+      "grocery",
+      "kirana",
+      "general store",
+      "supermarket"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/grocery-general-store/"
+  },
+  {
+    "Category_Title": "Electronics Store",
+    "Category_Id": "C0019",
+    "Category_Slug": "electronics-store",
+    "Category_Keywords": [
+      "electronics",
+      "home appliances",
+      "electronic shop"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/electronics-store/"
+  },
+  {
+    "Category_Title": "Beauty Salon",
+    "Category_Id": "C0020",
+    "Category_Slug": "beauty-salon",
+    "Category_Keywords": [
+      "beauty salon",
+      "salon",
+      "parlour",
+      "spa",
+      "makeup"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/beauty-salon/"
+  },
+  {
+    "Category_Title": "Medical Store",
+    "Category_Id": "C0021",
+    "Category_Slug": "medical-store",
+    "Category_Keywords": [
+      "medical store",
+      "pharmacy",
+      "chemist"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/medical-store/"
+  },
+  {
+    "Category_Title": "Travel & Taxi Service",
+    "Category_Id": "C0022",
+    "Category_Slug": "travel-taxi-service",
+    "Category_Keywords": [
+      "travel agent",
+      "taxi",
+      "cab",
+      "car rental"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/travel-taxi-service/"
+  },
+  {
+    "Category_Title": "Cyber Cafe & IT Services",
+    "Category_Id": "C0023",
+    "Category_Slug": "cyber-cafe-it-services",
+    "Category_Keywords": [
+      "cyber cafe",
+      "computer",
+      "it services",
+      "graphic design"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/cyber-cafe-it-services/"
+  },
+  {
+    "Category_Title": "School",
+    "Category_Id": "C0024",
+    "Category_Slug": "school",
+    "Category_Keywords": [
+      "school",
+      "public school",
+      "high school"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/school/"
+  },
+  {
+    "Category_Title": "Automobile Service",
+    "Category_Id": "C0025",
+    "Category_Slug": "automobile-service",
+    "Category_Keywords": [
+      "car repair",
+      "vehicle repair",
+      "bike service",
+      "automobile"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/automobile-service/"
+  },
+  {
+    "Category_Title": "Automobile Dealer & Insurance",
+    "Category_Id": "C0026",
+    "Category_Slug": "automobile-dealer-insurance",
+    "Category_Keywords": [
+      "bike dealer",
+      "vehicle dealer",
+      "insurance",
+      "pollution certificate"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/automobile-dealer-insurance/"
+  },
+  {
+    "Category_Title": "Printing & Stationery",
+    "Category_Id": "C0027",
+    "Category_Slug": "printing-stationery",
+    "Category_Keywords": [
+      "printing",
+      "print shop",
+      "photocopy"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/printing-stationery/"
+  },
+  {
+    "Category_Title": "Construction & Hardware",
+    "Category_Id": "C0028",
+    "Category_Slug": "construction-hardware",
+    "Category_Keywords": [
+      "construction",
+      "hardware",
+      "tiles",
+      "building material",
+      "contractor"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/construction-hardware/"
+  },
+  {
+    "Category_Title": "Doctor & Clinic",
+    "Category_Id": "C0029",
+    "Category_Slug": "doctor-clinic",
+    "Category_Keywords": [
+      "doctor",
+      "clinic",
+      "physician",
+      "specialist"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/doctor-clinic/"
+  },
+  {
+    "Category_Title": "Gym & Fitness",
+    "Category_Id": "C0030",
+    "Category_Slug": "gym-fitness",
+    "Category_Keywords": [
+      "gym",
+      "fitness",
+      "fitness centre"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/gym-fitness/"
+  },
+  {
+    "Category_Title": "Tourism & Attractions",
+    "Category_Id": "C0031",
+    "Category_Slug": "tourism-attractions",
+    "Category_Keywords": [
+      "tourist spot",
+      "tourism",
+      "attraction"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/tourism-attractions/"
+  },
+  {
+    "Category_Title": "Event & Tent Service",
+    "Category_Id": "C0032",
+    "Category_Slug": "event-tent-service",
+    "Category_Keywords": [
+      "tent house",
+      "event management",
+      "wedding tent"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/event-tent-service/"
+  },
+  {
+    "Category_Title": "Real Estate",
+    "Category_Id": "C0033",
+    "Category_Slug": "real-estate",
+    "Category_Keywords": [
+      "real estate",
+      "property dealer",
+      "builder"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/real-estate/"
+  },
+  {
+    "Category_Title": "Government & Cooperative",
+    "Category_Id": "C0034",
+    "Category_Slug": "government-cooperative",
+    "Category_Keywords": [
+      "cooperative",
+      "government office",
+      "bisc om a un"
+    ],
+    "Category_Seo_Url": "https://ubnux.com/in/all/government-cooperative/"
+  }
 ]
